@@ -1,0 +1,65 @@
+.secao-eventos {
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    width: 100%;
+    height: 300px;
+}
+
+.eventos {
+    background-color: rgb(226, 226, 226);
+    border-radius: 2vh;
+    border: solid 2px;
+    width: 30%;
+    height: 80%;
+}
+
+.secao-informacoes {
+    display: flex;
+    margin-left: 20px;
+}
+
+.proximos-eventos {
+    width: 70%;
+}
+
+.ultimos-avisos {
+    width: 30%;
+    height: 60vh;
+}
+
+.titulo-proximos-eventos {
+    width: 100%;
+}
+
+.titulo-secao {
+    display: flex;
+    align-items: center;
+    padding-left: 5px;
+    margin-bottom: 15px;
+    width: 100%;
+    height: 10%;
+}
+
+.info-titulo {
+    font-size: 25px;
+    font-weight: bolder;
+}
+
+.card-proximos-eventos {
+    background-color: rgb(226, 226, 226);
+    border-radius: 15px;
+    border: solid 2px;
+    width: 90%;
+    height: 200px;
+    margin-bottom: 15px;
+}
+
+.card-ultimos-avisos {
+    background-color: rgb(226, 226, 226);
+    border-radius: 15px;
+    border: solid 2px;
+    width: 90%;
+    height: 150px;
+    margin-bottom: 10px;
+}
