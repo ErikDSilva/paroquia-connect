@@ -15,7 +15,7 @@ export default function Header() {
         <Link to="/avisos" className="hover:underline">Avisos</Link>
         <Link to="#horarios" className="hover:underline">Horarios</Link>
         <Link to="#eventos" className="hover:underline">Eventos</Link>
-        <Link to="#contato" className="hover:underline">Contato</Link>
+        <Link to="/contatos" className="hover:underline">Contato</Link>
       </nav>
 
 
