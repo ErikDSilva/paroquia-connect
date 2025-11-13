@@ -1,4 +1,5 @@
-import React from "react";
+import { Link } from "react-router-dom";
+import { Button } from "./button";
 
 export default function Header() {
   return (
@@ -11,16 +12,16 @@ export default function Header() {
 
       {/* Links de navegação */}
       <nav className="flex space-x-6 text-lg font-semibold text-blue-900">
-        <a href="#avisos" className="hover:underline">Avisos</a>
-        <a href="#horarios" className="hover:underline">Horarios</a>
-        <a href="#eventos" className="hover:underline">Eventos</a>
-        <a href="#contato" className="hover:underline">Contato</a>
+        <Link to="/avisos" className="hover:underline">Avisos</Link>
+        <Link to="#horarios" className="hover:underline">Horarios</Link>
+        <Link to="#eventos" className="hover:underline">Eventos</Link>
+        <Link to="/contatos" className="hover:underline">Contato</Link>
       </nav>
 
-      {/* Botão de login */}
-      <button className="bg-cyan-400 hover:bg-cyan-500 text-black font-bold px-6 py-2 rounded-lg">
-        Login
-      </button>
+
+      <Button variant="outline" className="bg-cyan-400 hover:bg-cyan-500 text-black font-bold px-6 py-2 rounded-lg" asChild>
+        <Link to="#">Login</Link>
+      </Button>
     </header>
   );
 }
