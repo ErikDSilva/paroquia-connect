@@ -1,6 +1,6 @@
 import { createBrowserRouter } from "react-router-dom";
 import Home from "../pages/home/home.tsx";
-import Avisos from "../pages/avisos/app.tsx"
+import Avisos from "../pages/avisos/index.tsx"
 import Contato from "../pages/contatos/index.tsx"
 import ErrorPage from "./error-page.tsx";
 
