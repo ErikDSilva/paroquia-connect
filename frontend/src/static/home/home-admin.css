@@ -1,0 +1,166 @@
+/* Estilos para a página de Admin
+  Assumindo que variáveis :root como --background, --foreground, --primary,
+  --muted-foreground, --border, e --background-hsl estão definidas.
+*/
+
+/* 'min-h-screen bg-gradient-to-b from-background to-background/80' */
+.admin-page {
+  min-height: 100vh;
+  /* O 'to-background/80' usa opacidade. 
+    Assumindo que você tenha uma variável --background-hsl.
+  */
+  background-image: linear-gradient(
+    to bottom,
+    var(--background),
+    hsla(var(--background-hsl, 0 0% 100%), 0.8)
+  );
+}
+
+/* 'container mx-auto px-4 py-8' */
+.admin-main-container {
+  width: 100%;
+  max-width: 1280px; /* Largura padrão de 'container' */
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: 1rem;  /* px-4 */
+  padding-right: 1rem; /* px-4 */
+  padding-top: 2rem;   /* py-8 */
+  padding-bottom: 2rem;  /* py-8 */
+}
+
+/* 'mb-8' */
+.admin-header-section {
+  margin-bottom: 2rem;
+}
+
+/* 'text-4xl font-bold text-foreground mb-2' */
+.admin-title {
+  font-size: 2.25rem; /* 4xl */
+  line-height: 2.5rem;
+  font-weight: 700;
+  color: var(--foreground);
+  margin-bottom: 0.5rem; /* mb-2 */
+}
+
+/* 'text-muted-foreground' */
+.admin-description {
+  color: var(--muted-foreground);
+}
+
+/* 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8' */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(1, minmax(0, 1fr)); /* grid-cols-1 */
+  gap: 1.5rem; /* gap-6 */
+  margin-bottom: 2rem; /* mb-8 */
+}
+
+/* 'md:grid-cols-2' */
+@media (min-width: 768px) {
+  .stats-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* 'lg:grid-cols-4' */
+@media (min-width: 1024px) {
+  .stats-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+/* 'hover:shadow-lg transition-shadow' */
+.stat-card {
+  /* Estilos base do Card (assumidos) */
+  transition: box-shadow 0.2s ease-in-out;
+}
+
+.stat-card:hover {
+  /* shadow-lg */
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+}
+
+/* 'flex flex-row items-center justify-between pb-2' */
+.stat-card-header {
+  /* Os componentes 'shadcn/ui' CardHeader já usam flex.
+    Esta classe apenas aplica as classes utilitárias específicas.
+  */
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 0.5rem; /* pb-2 */
+}
+
+/* 'text-sm font-medium text-muted-foreground' */
+.stat-card-title {
+  font-size: 0.875rem; /* text-sm */
+  font-weight: 500;
+  color: var(--muted-foreground);
+}
+
+/* 'h-4 w-4 text-primary' */
+.stat-card-icon {
+  height: 1rem; /* h-4 */
+  width: 1rem;  /* w-4 */
+  color: var(--primary);
+}
+
+/* 'text-3xl font-bold text-foreground mb-1' */
+.stat-value {
+  font-size: 1.875rem; /* 3xl */
+  font-weight: 700;
+  color: var(--foreground);
+  margin-bottom: 0.25rem; /* mb-1 */
+}
+
+/* 'text-xs text-muted-foreground mb-2' */
+.stat-description {
+  font-size: 0.75rem; /* xs */
+  color: var(--muted-foreground);
+  margin-bottom: 0.5rem; /* mb-2 */
+}
+
+/* 'text-xs font-medium text-primary' */
+.stat-trend {
+  font-size: 0.75rem; /* xs */
+  font-weight: 500;
+  color: var(--primary);
+}
+
+/* 'space-y-4' */
+.activity-list > * + * {
+  margin-top: 1rem; /* space-y-4 */
+}
+
+/* 'flex items-center justify-between py-3 border-b last:border-b-0' */
+.activity-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: 0.75rem; /* py-3 */
+  padding-bottom: 0.75rem; /* py-3 */
+  border-bottom: 1px solid var(--border, #e5e7eb); /* border-b */
+}
+
+.activity-item:last-child {
+  border-bottom: 0; /* last:border-b-0 */
+}
+
+/* 'font-medium text-foreground' */
+.activity-action {
+  font-weight: 500;
+  color: var(--foreground);
+}
+
+/* 'text-sm text-muted-foreground' */
+.activity-user {
+  font-size: 0.875rem; /* sm */
+  color: var(--muted-foreground);
+}
+
+/* 'text-sm text-muted-foreground' */
+.activity-time {
+  font-size: 0.875rem; /* sm */
+  color: var(--muted-foreground);
+}
