@@ -38,7 +38,6 @@
     padding-bottom: 2rem;
 }
 
-/* 'grid grid-cols-1 md:grid-cols-3 gap-6 mb-12' */
 .quick-access-grid {
     display: grid;
     grid-template-columns: repeat(1, minmax(0, 1fr));
@@ -49,13 +48,12 @@
     /* 12 * 0.25rem = 3rem */
 }
 
-/* 'p-6 hover:shadow-lg transition-shadow cursor-pointer border-2 hover:border-primary' */
 .quick-access-card {
     /* Assumindo estilos base do 'Card' */
     border-radius: 0.5rem;
     border: 1px solid #e5e7eb;
     background-color: #ffffff;
-    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+    box-shadow: 0 3px 6px 0 rgba(0, 0, 0, 0.15), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
 
     /* Classes específicas */
     padding: 1.5rem;
@@ -65,13 +63,13 @@
     cursor: pointer;
     /* cursor-pointer */
     border-width: 2px;
-    border-color: transparent;
+    border-color: rgba(0, 47, 255, 0.259);
     /* Estado inicial para a transição */
 }
 
 .quick-access-card:hover {
     /* 'hover:shadow-lg' */
-    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.2), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
     /* 'hover:border-primary' */
     border-color: var(--primary);
 }
