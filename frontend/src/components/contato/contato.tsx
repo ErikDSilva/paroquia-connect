@@ -1,8 +1,10 @@
+import { Header } from "@/components/Header";
 export default function Contato() {
   return (
 
     <div className="min-h-screen p-8">
-
+      <Header />
+      
       {/* Cabeçalho da seção */}
       <div className="mb-10">
         <h1 className="text-3xl font-bold text-blue-800 mb-2">Entre em Contato</h1>
