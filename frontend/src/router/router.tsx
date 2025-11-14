@@ -2,6 +2,7 @@ import { createBrowserRouter } from "react-router-dom";
 import Home from "../pages/home/home.tsx";
 import Avisos from "../pages/avisos/index.tsx"
 import Contato from "../pages/contatos/index.tsx"
+import Eventos from "../pages/eventos/eventos.tsx";
 import ErrorPage from "./error-page.tsx";
 
 const router = createBrowserRouter([
@@ -19,6 +20,11 @@ const router = createBrowserRouter([
   {
     path: "/contato",
     element: <Contato />,
+    errorElement: <ErrorPage />,
+  },
+  {
+    path: "/eventos",
+    element: <Eventos />,
     errorElement: <ErrorPage />,
   }
 ])
