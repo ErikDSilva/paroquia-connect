@@ -1,82 +1,135 @@
 import { Header } from "@/components/Header";
-export default function Contato() {
-  return (
+import { Card } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Button } from "@/components/ui/button";
+import { MapPin, Phone, Mail } from "lucide-react";
+import "@/static/contatos/style.css"
 
-    <div className="min-h-screen p-8">
+const Contato = () => {
+  return (
+    <div className="contato-page">
       <Header />
       
-      {/* Cabeçalho da seção */}
-      <div className="mb-10">
-        <h1 className="text-3xl font-bold text-blue-800 mb-2">Entre em Contato</h1>
-        <p className="text-blue-700">
-          Tire suas dúvidas e entre em contato com a paróquia
-        </p>
-      </div>
+      <main className="main-container">
+        <div className="content-wrapper">
+          <div className="header-section">
+            <h1 className="title">Entre em Contato</h1>
+            <p className="subtitle">Tire suas dúvidas e entre em contato com a paróquia</p>
+          </div>
 
-      <div className="flex flex-col md:flex-row gap-10">
-        {/* Informações de contato */}
-        <div className="flex-1 border-l-4 border-blue-800 pl-8 text-blue-900 font-bold space-y-10 text-lg">
-          <p>Endereço</p>
-          <p>Telefone</p>
-          <p>Email</p>
+          <div className="grid-layout">
+            {/* Contact Information */}
+            <div>
+              <Card className="contact-info-card">
+                <h2 className="card-title">Informações de Contato</h2>
+                
+                <div className="info-list">
+                  <div className="info-item">
+                    <div className="icon-container">
+                      <MapPin className="icon" />
+                    </div>
+                    <div>
+                      <h3 className="info-heading">Endereço</h3>
+                      <p className="info-text">
+                        Rua da Igreja, 123<br />
+                        Centro - CEP 12345-678<br />
+                        Cidade - Estado
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="info-item">
+                    <div className="icon-container">
+                      <Phone className="icon" />
+                    </div>
+                    <div>
+                      <h3 className="info-heading">Telefone</h3>
+                      <p className="info-text">
+                        (11) 1234-5678<br />
+                        (11) 98765-4321
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="info-item">
+                    <div className="icon-container">
+                      <Mail className="icon" />
+                    </div>
+                    <div>
+                      <h3 className="info-heading">Email</h3>
+                      <p className="info-text">
+                        contato@paroquia.com.br<br />
+                        secretaria@paroquia.com.br
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </Card>
+
+              <Card className="hours-card">
+                <h2 className="card-title">Horário de Atendimento</h2>
+                <div className="hours-list">
+                  <div className="hours-item">
+                    <span className="hours-label">Segunda a Sexta:</span>
+                    <span className="hours-time">14:00 - 17:00</span>
+                  </div>
+                  <div className="hours-item">
+                    <span className="hours-label">Sábado:</span>
+                    <span className="hours-time">09:00 - 12:00</span>
+                  </div>
+                  <div className="hours-item">
+                    <span className="hours-label">Domingo:</span>
+                    <span className="hours-time">Após as missas</span>
+                  </div>
+                </div>
+              </Card>
+            </div>
+
+            {/* Contact Form */}
+            <Card className="form-card">
+              <h2 className="card-title">Enviar Mensagem</h2>
+              
+              <form className="contact-form">
+                <div className="form-row">
+                  <div className="form-group">
+                    <label className="form-label">Nome</label>
+                    <Input placeholder="Seu nome" />
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">Email</label>
+                    <Input type="email" placeholder="seu@email.com" />
+                  </div>
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label">Telefone</label>
+                  <Input placeholder="(11) 12345-6789" />
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label">Assunto</label>
+                  <Input placeholder="Sobre o que deseja falar?" />
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label">Mensagem</label>
+                  <Textarea 
+                    placeholder="Digite sua mensagem aqui..." 
+                    className="textarea-input"
+                  />
+                </div>
+
+                <Button className="submit-button" size="lg">
+                  ENVIAR MENSAGEM
+                </Button>
+              </form>
+            </Card>
+          </div>
         </div>
-
-        {/* Formulário */}
-        <div className="flex-1 border border-black rounded-md p-6 shadow-sm">
-          <form className="grid grid-cols-1 md:grid-cols-2 gap-4 text-blue-900 font-bold">
-            {/* Linha 1 */}
-            <div>
-              <label>Nome</label>
-              <input
-                type="text"
-                className="w-full border border-gray-400 rounded-sm bg-gray-100 p-1"
-              />
-            </div>
-            <div>
-              <label>Email</label>
-              <input
-                type="email"
-                className="w-full border border-gray-400 rounded-sm bg-gray-100 p-1"
-              />
-            </div>
-
-            {/* Linha 2 */}
-            <div>
-              <label>Telefone</label>
-              <input
-                type="text"
-                className="w-full border border-gray-400 rounded-sm bg-gray-100 p-1"
-              />
-            </div>
-            <div>
-              <label>Assunto</label>
-              <input
-                type="text"
-                className="w-full border border-gray-400 rounded-sm bg-gray-100 p-1"
-              />
-            </div>
-
-            {/* Linha 3 — Mensagem */}
-            <div className="md:col-span-2">
-              <label>Mensagem</label>
-              <textarea
-                rows={4}
-                className="w-full border border-gray-400 rounded-sm bg-gray-100 p-1"
-              ></textarea>
-            </div>
-
-            {/* Botão */}
-            <div className="md:col-span-2">
-              <button
-                type="submit"
-                className="w-full bg-blue-500 hover:bg-blue-600 text-black font-bold py-2 rounded-sm"
-              >
-                ENVIAR MENSAGEM
-              </button>
-            </div>
-          </form>
-        </div>
-      </div>
+      </main>
     </div>
   );
-}
+};
+
+export default Contato;
