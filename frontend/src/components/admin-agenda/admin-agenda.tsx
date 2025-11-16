@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Header } from "@/components/Header";
+import { HeaderSecretaria } from "@/components/HeaderSecretaria";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -67,7 +67,7 @@ const AdminAgenda = () => {
 
   return (
     <div className="admin-agenda-page">
-      <Header />
+      <HeaderSecretaria />
       
       <main className="main-content">
         <div className="page-header">

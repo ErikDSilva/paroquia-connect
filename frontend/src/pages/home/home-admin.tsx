@@ -1,4 +1,4 @@
-import { Header } from "@/components/Header";
+import { HeaderSecretaria } from "@/components/HeaderSecretaria";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Users, Calendar, FileText, TrendingUp } from "lucide-react";
 
@@ -47,7 +47,7 @@ const Admin = () => {
   return (
     // 'min-h-screen bg-gradient-to-b from-background to-background/80'
     <div className="admin-page">
-      <Header />
+      <HeaderSecretaria />
       
       {/* 'container mx-auto px-4 py-8' */}
       <main className="admin-main-container">
