@@ -1,5 +1,3 @@
-import React from 'react';
-
 // A importação do CSS
 import "../../static/home/style.css"
 
