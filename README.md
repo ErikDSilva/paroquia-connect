@@ -5,7 +5,11 @@ Frontend em React para o projeto Paróquia Connect.
 Instalação do Peewee:
   pip install flask peewee
 
-  pymysql
+  pip install flask pymysql
+
+Instalação do Cors
+
+  pip install flask-cors
 
 Criado a tabela:
   python -m app.models.create_tables

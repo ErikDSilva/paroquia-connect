@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+
 import { HeaderSecretaria } from "@/components/HeaderSecretaria";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -22,22 +23,35 @@ type Evento = {
   isLimited: boolean;
   vacancy: number;
   registered: number;
+  description: string;
 };
 
 const Eventos = () => {
   const { toast } = useToast();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedType, setSelectedType] = useState("all");
-  const [vacancyType, setVacancyType] = useState("limitada");
+
+  const [editingId, setEditingId] = useState<number | null>(null)
+
+  // ESTADO DO FORMULÁRIO (Adicione isto)
+  const [formData, setFormData] = useState({
+    titulo: "",
+    tipo: "",
+    local: "",
+    tipo_vagas: "limitada",
+    numero_vagas: "",
+    data: "",
+    horario: "",
+    descricao: ""
+  });
+
+  // Função para atualizar o estado quando digitar
+  const handleInputChange = (field: string, value: any) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+  };
 
   // Dados de exemplo com 'registered'
-  const events: Evento[] = [
-    { id: 1, title: "Retiro de Advento", type: "formacao", date: "2024-12-10", time: "08:00", location: "Casa de Retiros São Paulo", isLimited: true, vacancy: 120, registered: 85 },
-    { id: 2, title: "Adoração ao Santíssimo", type: "espiritualidade", date: "2024-12-15", time: "20:00", location: "Igreja Matriz", isLimited: true, vacancy: 40, registered: 40 },
-    { id: 3, title: "Quermesse Paroquial", type: "festividade", date: "2024-12-22", time: "17:00", location: "Pátio da Paróquia", isLimited: false, vacancy: 0, registered: 210 },
-    { id: 4, title: "Campanha do Agasalho – Triagem", type: "acaoSocial", date: "2024-12-18", time: "14:00", location: "Salão Paroquial", isLimited: true, vacancy: 25, registered: 12 },
-    { id: 5, title: "Reunião do CPP", type: "administrativo", date: "2024-12-20", time: "19:30", location: "Sala de Reuniões", isLimited: true, vacancy: 12, registered: 10 }
-  ];
+  const [events, setEvents] = useState<Evento[]>([]);
 
   const getTypeName = (type: string) => {
     const typeNames: Record<string, string> = {
@@ -76,21 +90,135 @@ const Eventos = () => {
     ? events
     : events.filter(event => event.type === selectedType);
 
-  const handleSaveEvent = () => {
-    setIsDialogOpen(false);
-    setVacancyType("limitada");
-    toast({
-      title: "Evento criado",
-      description: "Novo evento adicionado à agenda"
+  // --- NOVO: Função para limpar o formulário e resetar estado de edição ---
+  const resetForm = () => {
+    setFormData({
+      titulo: "", tipo: "", local: "", tipo_vagas: "limitada",
+      numero_vagas: "", data: "", horario: "", descricao: ""
     });
+    setEditingId(null); // Importante: volta para modo "Criação"
+    setIsDialogOpen(false);
   };
 
-  const handleDeleteEvent = (eventId: number) => {
-    toast({
-      title: "Evento excluído",
-      description: "O evento foi removido da agenda"
-    });
+  // --- ATUALIZADO: Função única para Salvar (Criar ou Editar) ---
+  const handleSaveEvent = async () => {
+    try {
+      // Define a URL e o Método baseado se estamos editando ou criando
+      const url = editingId
+        ? `http://localhost:5000/api/v1/eventos/${editingId}`
+        : 'http://localhost:5000/api/v1/eventos';
+
+      const method = editingId ? 'PUT' : 'POST';
+
+      const response = await fetch(url, {
+        method: method,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData),
+      });
+
+      if (response.ok) {
+        toast({
+          title: "Sucesso!",
+          description: editingId ? "Evento atualizado com sucesso." : "Evento criado com sucesso."
+        });
+
+        fetchEventos(); // Atualiza a lista
+        resetForm(); // Limpa e fecha
+      } else {
+        throw new Error('Erro ao salvar');
+      }
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Erro",
+        description: "Não foi possível salvar o evento."
+      });
+    }
   };
+
+  // --- NOVO: Função para preencher o formulário ao clicar em Editar ---
+  const handleEditClick = (evento: Evento) => {
+    setEditingId(evento.id); // Marca que estamos editando este ID
+    setFormData({
+      titulo: evento.title,
+      tipo: evento.type,
+      local: evento.location,
+      tipo_vagas: evento.isLimited ? "limitada" : "aberta",
+      numero_vagas: evento.vacancy ? String(evento.vacancy) : "",
+      data: evento.date, // Certifique-se que venha no formato YYYY-MM-DD do backend
+      horario: evento.time,
+      descricao: evento.description || ""
+    });
+    setIsDialogOpen(true); // Abre o modal
+  };
+
+  // --- ATUALIZADO: Função para deletar chamando a API ---
+  const handleDeleteEvent = async (eventId: number) => {
+    if (!confirm("Tem certeza que deseja excluir esta agenda?")) return;
+
+    try {
+      const response = await fetch(`http://localhost:5000/api/v1/eventos/${eventId}`, {
+        method: 'DELETE'
+      });
+
+      if (response.ok) {
+        toast({
+          title: "Evento excluído",
+          description: "O evento foi removido da agenda"
+        });
+        fetchEventos(); // Recarrega a lista
+      } else {
+        throw new Error("Erro ao deletar");
+      }
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Erro",
+        description: "Não foi possível excluir o evento."
+      });
+    }
+  };
+
+  const fetchEventos = async () => {
+    try {
+      const response = await fetch('http://localhost:5000/api/v1/eventos'); // Vamos precisar criar essa rota no backend
+      if (response.ok) {
+        const data = await response.json();
+
+        // Ajuste os dados do banco para o formato da tela se necessário
+        // O Peewee retorna campos como snake_case (tipo_vagas), mas seu frontend usa camelCase ou inglês?
+        // Baseado no seu type Evento (linha 16), vamos mapear:
+        const eventosFormatados = data.map((evt: any) => ({
+          id: evt.id,
+          title: evt.titulo,
+          type: evt.tipo,
+          date: evt.data, // O React espera string YYYY-MM-DD, verifique se o backend manda assim
+          time: evt.horario,
+          location: evt.local,
+          isLimited: evt.tipo_vagas === 'limitada',
+          vacancy: evt.numero_vagas || 0,
+          registered: 0, // Por enquanto 0, pois ainda não temos contagem de inscritos
+          description: evt.descricao
+        }));
+
+        setEvents(eventosFormatados);
+      }
+    } catch (error) {
+      console.error("Erro ao buscar eventos:", error);
+      toast({
+        variant: "destructive",
+        title: "Erro de conexão",
+        description: "Não foi possível carregar a lista de eventos."
+      });
+    }
+  };
+
+  // Carrega os dados ao abrir a página
+  useEffect(() => {
+    fetchEventos();
+  }, []);
 
   return (
     <div className="admin-agenda-page">
@@ -117,6 +245,7 @@ const Eventos = () => {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">Todos</SelectItem>
+                    <SelectItem value="outro">Outro</SelectItem>
                     <SelectItem value="formacao">Formação</SelectItem>
                     <SelectItem value="espiritualidade">Espiritualidade</SelectItem>
                     <SelectItem value="festividade">Festividade</SelectItem>
@@ -125,9 +254,13 @@ const Eventos = () => {
                   </SelectContent>
                 </Select>
 
-                <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+                <Dialog open={isDialogOpen} onOpenChange={(open) => {
+                  if (!open) resetForm(); // Reseta ao fechar clicando fora
+                  setIsDialogOpen(open);
+                }}>
                   <DialogTrigger asChild>
-                    <Button className="btn-new-event">
+                    <Button className="btn-new-event" onClick={() => resetForm()}>
+                      {/* onClick no botão Novo garante que o form esteja limpo */}
                       <CalendarPlus className="mr-2 icon-sm" />
                       Novo Evento
                     </Button>
@@ -141,16 +274,22 @@ const Eventos = () => {
                       {/* Campos do formulário */}
                       <div className="form-group">
                         <Label htmlFor="event-title">Título do Evento</Label>
-                        <Input id="event-title" placeholder="Ex: Missa Dominical" />
+                        <Input
+                          id="event-title"
+                          placeholder="Ex: Missa Dominical"
+                          value={formData.titulo}
+                          onChange={(e) => handleInputChange('titulo', e.target.value)}
+                        />
                       </div>
                       <div className="form-row">
                         <div className="form-group">
                           <Label htmlFor="event-type">Tipo</Label>
-                          <Select>
+                          <Select onValueChange={(value) => handleInputChange('tipo', value)}>
                             <SelectTrigger id="event-type">
                               <SelectValue placeholder="Selecione o tipo" />
                             </SelectTrigger>
                             <SelectContent>
+                              <SelectItem value="outro">Outro  </SelectItem>
                               <SelectItem value="formacao">Formação</SelectItem>
                               <SelectItem value="espiritualidade">Espiritualidade</SelectItem>
                               <SelectItem value="festividade">Festividade</SelectItem>
@@ -161,13 +300,21 @@ const Eventos = () => {
                         </div>
                         <div className="form-group">
                           <Label htmlFor="event-location">Local</Label>
-                          <Input id="event-location" placeholder="Ex: Igreja Matriz" />
+                          <Input
+                            id="event-location"
+                            placeholder="Ex: Igreja Matriz"
+                            value={formData.local}
+                            onChange={(e) => handleInputChange('local', e.target.value)}
+                          />
                         </div>
                       </div>
                       <div className="form-row">
                         <div className="form-group">
                           <Label htmlFor="event-vacancy-type">Tipo de Vagas</Label>
-                          <Select value={vacancyType} onValueChange={setVacancyType}>
+                          <Select
+                            value={formData.tipo_vagas}
+                            onValueChange={(value) => handleInputChange('tipo_vagas', value)}
+                          >
                             <SelectTrigger id="event-vacancy-type">
                               <SelectValue placeholder="Selecione o tipo de vagas" />
                             </SelectTrigger>
@@ -177,26 +324,51 @@ const Eventos = () => {
                             </SelectContent>
                           </Select>
                         </div>
-                        {vacancyType === 'limitada' && (
+                        {formData.tipo_vagas === 'limitada' && (
                           <div className="form-group">
                             <Label htmlFor="event-vacancy-count">Nº de Vagas</Label>
-                            <Input id="event-vacancy-count" type="number" placeholder="Ex: 50" min="1" />
+                            <Input
+                              id="event-vacancy-count"
+                              type="number"
+                              placeholder="Ex: 50"
+                              min="1"
+                              // Esta parte do Input já estava correta no seu código:
+                              value={formData.numero_vagas}
+                              onChange={(e) => handleInputChange('numero_vagas', e.target.value)}
+                            />
                           </div>
                         )}
                       </div>
                       <div className="form-row">
                         <div className="form-group">
                           <Label htmlFor="event-date">Data</Label>
-                          <Input id="event-date" type="date" />
+                          <Input
+                            id="event-date"
+                            type="date"
+                            value={formData.data}
+                            onChange={(e) => handleInputChange('data', e.target.value)}
+                          />
                         </div>
                         <div className="form-group">
                           <Label htmlFor="event-time">Horário</Label>
-                          <Input id="event-time" type="time" />
+                          <Input
+                            id="event-time"
+                            type="time"
+                            value={formData.horario}
+                            onChange={(e) => handleInputChange('horario', e.target.value)}
+                          />
                         </div>
                       </div>
                       <div className="form-group">
                         <Label htmlFor="event-description">Descrição</Label>
-                        <Textarea id="event-description" placeholder="Descreva o evento..." rows={3} />
+                        <Textarea
+                          id="event-description"
+                          placeholder="Descreva o evento..."
+                          rows={3}
+                          // ADICIONE ESTAS DUAS LINHAS:
+                          value={formData.descricao}
+                          onChange={(e) => handleInputChange('descricao', e.target.value)}
+                        />
                       </div>
                     </div>
                     <div className="dialog-footer">
@@ -234,7 +406,7 @@ const Eventos = () => {
                             <span className="metadata-label">Data:</span> {new Date(event.date).toLocaleDateString('pt-BR')}
                           </div>
                           <div className="metadata-item">
-                            <span className="metadata-label">Horário:</span> {event.time}
+                            <span className="metadata-label">Horário:</span> {event.time.substring(0, 5)}
                           </div>
                           <div className="metadata-item">
                             <span className="metadata-label">Local:</span> {event.location}
@@ -246,7 +418,7 @@ const Eventos = () => {
                           {event.isLimited ? (
                             <>
                               <span className="metadata-label">Vagas:</span> {event.registered} / {event.vacancy}
-                              
+
                               {/* Indicador de "Lotado" */}
                               {event.registered >= event.vacancy && (
                                 <span style={{ marginLeft: '0.5rem', fontWeight: 500 }} className="text-destructive">
@@ -261,11 +433,11 @@ const Eventos = () => {
                           )}
                         </div>
                         {/* ===== FIM DA ATUALIZAÇÃO DE EXIBIÇÃO ===== */}
-                        
+
                       </div>
 
                       <div className="event-actions">
-                        <Button variant="ghost" size="icon">
+                        <Button variant="ghost" size="icon" onClick={() => handleEditClick(event)}>
                           <Edit className="icon-sm" />
                         </Button>
                         <Button
