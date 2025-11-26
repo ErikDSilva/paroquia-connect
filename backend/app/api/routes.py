@@ -2,11 +2,10 @@ from flask import request, jsonify
 from . import api_bp
 from ..models.eventos import Evento;
 from ..models.agenda import Agenda;
-from ..models.avisos import Aviso;
-from ..models.horario import Horario;
 
 # O prefixo /api/v1 já foi definido no create_app
-# Então, esta rota será acessível em: http://localhost:5000/api/v1/data
+# Rota: http://localhost:5000/api/v1/data
+
 
 # --- ROTA EVENTOS ---
 
@@ -104,5 +103,100 @@ def delete_evento(id):
         return jsonify({"error": str(e)}), 500
     
 
+# --- ROTA AGENDA ---
 
+@api_bp.route('/agenda', methods=['GET'])
+def get_agenda():
+    try:
+        # Busca todos os registros, ordenados por data (opcional)
+        agendas = Agenda.select().order_by(Agenda.data.desc())
+        
+        lista_agenda = []
+        for a in agendas:
+            lista_agenda.append({
+                "id": a.id,
+                "titulo": a.titulo,
+                "tipo": a.tipo,
+                "local": a.local,
+                # Convertendo Date e Time para string (ISO format) para o JSON
+                "data": str(a.data), 
+                "horario": str(a.horario),
+                "descricao": a.descricao
+            })
+            
+        return jsonify(lista_agenda), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+# 2. CRIAR NOVO (POST)
+@api_bp.route('/agenda', methods=['POST'])
+def create_agenda():
+    data = request.json
+    
+    # Validação básica (opcional, mas recomendada)
+    if not data.get('titulo') or not data.get('data'):
+        return jsonify({"error": "Título e Data são obrigatórios"}), 400
+
+    try:
+        nova_agenda = Agenda.create(
+            titulo=data.get('titulo'),
+            tipo=data.get('tipo'),
+            data=data.get('data'),       # Espera string 'YYYY-MM-DD'
+            local=data.get('local'),
+            horario=data.get('horario'), # Espera string 'HH:MM'
+            descricao=data.get('descricao')
+        )
+        
+        return jsonify({
+            "message": "Agendamento criado com sucesso!",
+            "id": nova_agenda.id
+        }), 201
+        
+    except Exception as e:
+        print(f"Erro ao salvar: {e}") # Bom para debug no terminal
+        return jsonify({"error": str(e)}), 500
+
+
+# 4. DELETAR (DELETE)
+@api_bp.route('/agenda/<int:id>', methods=['DELETE'])
+def delete_agenda(id):
+    try:
+        query = Agenda.delete().where(Agenda.id == id)
+        rows_deleted = query.execute()
+        
+        if rows_deleted == 0:
+            return jsonify({"error": "Item não encontrado"}), 404
+            
+        return jsonify({"message": "Removido da agenda com sucesso!"}), 200
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+    
+    
+# 3. ATUALIZAR (PUT)
+@api_bp.route('/agenda/<int:id>', methods=['PUT'])
+def update_agenda(id):
+    data = request.json
+    try:
+        # Busca o item no banco pelo ID que veio na URL
+        agenda_item = Agenda.get_or_none(Agenda.id == id)
+        
+        if not agenda_item:
+            return jsonify({"error": "Item da agenda não encontrado"}), 404
+
+        # Atualiza os campos com os dados novos vindos do React
+        agenda_item.titulo = data.get('titulo')
+        agenda_item.tipo = data.get('tipo')
+        agenda_item.local = data.get('local')
+        agenda_item.data = data.get('data')
+        agenda_item.horario = data.get('horario')
+        agenda_item.descricao = data.get('descricao')
+        
+        agenda_item.save() # Salva no banco de dados
+        
+        return jsonify({"message": "Agendamento atualizado com sucesso!"}), 200
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
     
