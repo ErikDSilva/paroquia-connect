@@ -53,6 +53,20 @@ export const HeaderSecretaria = () => {
           >
             Avisos
           </NavLink>
+          <NavLink
+            to="/admin/horarios"
+            className="px-4 py-2 text-sm font-medium text-foreground/80 hover:text-foreground hover:bg-muted rounded-md transition-colors"
+            activeClassName="text-primary bg-secondary"
+          >
+            Horarios
+          </NavLink>
+          <NavLink
+            to="/admin/membros"
+            className="px-4 py-2 text-sm font-medium text-foreground/80 hover:text-foreground hover:bg-muted rounded-md transition-colors"
+            activeClassName="text-primary bg-secondary"
+          >
+            Membros
+          </NavLink>
         </nav>
 
         <div className="flex items-center gap-2">
