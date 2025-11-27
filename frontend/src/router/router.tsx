@@ -9,6 +9,9 @@ import AdminAgenda from "@/pages/admin/agenda/admin-agenda.tsx";
 import AdminEventos from "@/pages/admin/eventos/admin-evento.tsx";
 import AdminAvisos from "@/pages/admin/avisos/admin-avisos.tsx";
 import AdminMembros from "@/pages/admin/membros/admin-membro.tsx";
+import AdminHorarios from "@/pages/admin/horarios/admin-horario.tsx";
+
+import Teste from "@/pages/teste.tsx"
 
 import ErrorPage from "./error-page.tsx";
 
@@ -18,6 +21,10 @@ const router = createBrowserRouter([
     element: <Home />,
     errorElement: <ErrorPage />
     ,
+  },
+  {
+    path: "/teste",
+    element: <Teste />,
   },
   {
     path: "/avisos",
@@ -65,6 +72,11 @@ const router = createBrowserRouter([
   {
     path: "/admin/membros",
     element: <AdminMembros />,
+    errorElement: <ErrorPage />
+  },
+  {
+    path: "/admin/horarios",
+    element: <AdminHorarios />,
     errorElement: <ErrorPage />
   }
 ])

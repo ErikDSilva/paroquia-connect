@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Header } from "@/components/Header";
+import { HeaderSecretaria } from "@/components/HeaderSecretaria";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -35,7 +35,7 @@ const AdminMembros = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-background to-background/80">
-      <Header />
+      <HeaderSecretaria />
       
       <main className="container mx-auto px-4 py-8">
         <div className="mb-8">

@@ -1,0 +1,214 @@
+/* Layout da Página */
+.pageContainer {
+  min-height: 100vh;
+  background: linear-gradient(to bottom, var(--background), rgba(var(--background), 0.8));
+}
+
+.mainContent {
+  width: 100%;
+  max-width: 1280px; /* Equivalente ao container mx-auto */
+  margin: 0 auto;
+  padding: 2rem 1rem;
+}
+
+/* Cabeçalho da Página */
+.headerSection {
+  margin-bottom: 2rem;
+}
+
+.pageTitle {
+  font-size: 2.25rem; /* text-4xl */
+  font-weight: 700;
+  color: var(--foreground);
+  margin-bottom: 0.5rem;
+}
+
+.pageSubtitle {
+  color: var(--muted-foreground);
+}
+
+/* Header do Card Principal */
+.cardHeaderContainer {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+}
+
+/* Responsividade para desktop (md) */
+@media (min-width: 768px) {
+  .cardHeaderContainer {
+    flex-direction: row;
+    align-items: center;
+  }
+}
+
+/* Área de Filtros e Botão */
+.actionsContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  width: 100%;
+}
+
+@media (min-width: 768px) {
+  .actionsContainer {
+    width: auto;
+  }
+}
+
+@media (min-width: 640px) {
+  .actionsContainer {
+    flex-direction: row;
+  }
+}
+
+.selectTrigger {
+  width: 100%;
+}
+
+@media (min-width: 640px) {
+  .selectTrigger {
+    width: 12rem; /* w-48 */
+  }
+}
+
+.newNoticeButton {
+  width: 100%;
+}
+
+@media (min-width: 640px) {
+  .newNoticeButton {
+    width: auto;
+  }
+}
+
+.buttonIcon {
+  margin-right: 0.5rem;
+  height: 1rem;
+  width: 1rem;
+}
+
+/* Estilos do Dialog/Modal */
+.dialogContent {
+  max-width: 42rem; /* max-w-2xl */
+}
+
+.formGrid {
+  display: grid;
+  gap: 1rem;
+  padding: 1rem 0;
+}
+
+.inputGroup {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.dialogFooter {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+}
+
+/* Lista de Avisos */
+.noticesList {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.noticeCard {
+  transition: box-shadow 0.3s ease;
+}
+
+.noticeCard:hover {
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+.cardPadding {
+  padding: 1.5rem;
+}
+
+.noticeLayout {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+}
+
+@media (min-width: 768px) {
+  .noticeLayout {
+    flex-direction: row;
+  }
+}
+
+.noticeContentWrapper {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.noticeHeader {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+}
+
+.categoryIconWrapper {
+  margin-top: 0.25rem;
+}
+
+.categoryIcon {
+  height: 1rem;
+  width: 1rem;
+}
+
+.noticeInfo {
+  flex: 1;
+}
+
+.noticeTitle {
+  font-weight: 600;
+  font-size: 1.125rem; /* text-lg */
+  color: var(--foreground);
+  margin-bottom: 0.5rem;
+}
+
+.noticeMeta {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.noticeDate {
+  font-size: 0.875rem; /* text-sm */
+  color: var(--muted-foreground);
+}
+
+.noticeText {
+  color: var(--muted-foreground);
+  font-size: 0.875rem;
+  line-height: 1.625;
+}
+
+.noticeViews {
+  font-size: 0.75rem; /* text-xs */
+  color: var(--muted-foreground);
+  margin-top: 0.75rem;
+}
+
+.actionButtons {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.deleteIcon {
+  height: 1rem;
+  width: 1rem;
+  color: hsl(var(--destructive));
+}
