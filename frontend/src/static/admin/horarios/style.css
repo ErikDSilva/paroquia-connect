@@ -1,0 +1,100 @@
+/* AdminHorarios.module.css */
+
+.pageWrapper {
+  min-height: 100vh;
+  background-color: hsl(var(--background));
+}
+
+.mainContainer {
+  width: 100%;
+  margin-left: auto;
+  margin-right: auto;
+  padding: 2rem 1rem; /* px-4 py-8 */
+}
+
+.contentWrapper {
+  max-width: 72rem; /* max-w-6xl */
+  margin: 0 auto;
+}
+
+.pageHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem; /* mb-8 */
+}
+
+.title {
+  font-size: 1.875rem; /* text-3xl */
+  line-height: 2.25rem;
+  font-weight: 700; /* font-bold */
+  color: hsl(var(--foreground));
+  margin-bottom: 0.5rem;
+}
+
+.subtitle {
+  color: hsl(var(--muted-foreground));
+}
+
+/* Estilos do Formulário no Dialog */
+.formContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem; /* space-y-4 */
+  padding: 1rem 0;
+}
+
+.formGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem; /* space-y-2 */
+}
+
+/* Lista de Cards */
+.cardsList {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem; /* space-y-6 */
+}
+
+.cardDescription {
+  color: hsl(var(--muted-foreground));
+}
+
+/* Tabela e Ações */
+.cellActions {
+  text-align: right;
+}
+
+.actionButtons {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}
+
+.deleteIcon {
+  height: 1rem;
+  width: 1rem;
+  color: hsl(var(--destructive));
+}
+
+.icon {
+  height: 1rem;
+  width: 1rem;
+  transition: color 0.2s ease-in-out;
+}
+.actionButtons button:hover .icon {
+  color: hsl(var(--foreground)); 
+}
+
+.iconWithText {
+  margin-right: 0.5rem;
+  height: 1rem;
+  width: 1rem;
+}
+
+.emptyState {
+  color: hsl(var(--muted-foreground));
+  text-align: center;
+  padding: 2rem 0;
+}

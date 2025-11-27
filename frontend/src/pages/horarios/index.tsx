@@ -1,70 +1,90 @@
+import { useState, useEffect } from "react";
 import { Header } from "@/components/Header";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight } from "lucide-react";
-import { useState } from "react";
+import { ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
 
 import "@/static/horarios/style.css";
 
+// Interface para o dado que vem da API
+interface HorarioApi {
+  id: number;
+  dia: string;
+  titulo: string;
+  horario: string;
+  local: string;
+}
+
+// Interfaces para o uso no componente
+interface Activity {
+  time: string;
+  name: string;
+  location: string;
+}
+
+interface DaySchedule {
+  day: string;
+  activities: Activity[];
+}
+
 const Horarios = () => {
   const [currentDay, setCurrentDay] = useState(0);
-
-  const schedule = [
-    {
-      day: "Domingo",
-      activities: [
-        { time: "07:00", name: "Missa", location: "Matriz" },
-        { time: "10:00", name: "Missa", location: "Matriz" },
-        { time: "17:00", name: "Missa", location: "Matriz" },
-        { time: "19:00", name: "Missa", location: "Matriz" },
-      ],
-    },
-    {
-      day: "Segunda-feira",
-      activities: [
-        { time: "07:00", name: "Missa", location: "Capela" },
-        { time: "19:00", name: "Missa", location: "Capela" },
-      ],
-    },
-    {
-      day: "Terça-feira",
-      activities: [
-        { time: "07:00", name: "Missa", location: "Capela" },
-        { time: "19:00", name: "Missa", location: "Capela" },
-      ],
-    },
-    {
-      day: "Quarta-feira",
-      activities: [
-        { time: "07:00", name: "Missa", location: "Capela" },
-        { time: "19:00", name: "Missa", location: "Capela" },
-        { time: "19:30", name: "Grupo de Oração", location: "Salão" },
-      ],
-    },
-    {
-      day: "Quinta-feira",
-      activities: [
-        { time: "07:00", name: "Missa", location: "Capela" },
-        { time: "19:00", name: "Missa", location: "Capela" },
-      ],
-    },
-    {
-      day: "Sexta-feira",
-      activities: [
-        { time: "07:00", name: "Missa", location: "Capela" },
-        { time: "19:00", name: "Missa", location: "Capela" },
-        { time: "20:00", name: "Adoração ao Santíssimo", location: "Matriz" },
-      ],
-    },
-    {
-      day: "Sábado",
-      activities: [
-        { time: "07:00", name: "Missa", location: "Capela" },
-        { time: "14:00", name: "Catequese Infantil", location: "Salão" },
-        { time: "19:00", name: "Missa", location: "Matriz" },
-      ],
-    },
+  const [loading, setLoading] = useState(true);
+  
+  // Estrutura base dos dias para garantir a ordem correta (Domingo a Sábado)
+  const initialSchedule: DaySchedule[] = [
+    { day: "Domingo", activities: [] },
+    { day: "Segunda-feira", activities: [] },
+    { day: "Terça-feira", activities: [] },
+    { day: "Quarta-feira", activities: [] },
+    { day: "Quinta-feira", activities: [] },
+    { day: "Sexta-feira", activities: [] },
+    { day: "Sábado", activities: [] },
   ];
+
+  const [schedule, setSchedule] = useState<DaySchedule[]>(initialSchedule);
+
+  useEffect(() => {
+    const fetchHorarios = async () => {
+      try {
+        const response = await fetch("http://localhost:5000/api/v1/horarios");
+        if (response.ok) {
+          const data: HorarioApi[] = await response.json();
+          
+          // Clona a estrutura inicial para não mutar o estado diretamente
+          const newSchedule = JSON.parse(JSON.stringify(initialSchedule));
+
+          // Distribui os horários vindos do banco nos dias correspondentes
+          data.forEach((item) => {
+            // Procura o índice do dia no array (ex: "Segunda-feira")
+            const dayIndex = newSchedule.findIndex((d: DaySchedule) => d.day === item.dia);
+            
+            if (dayIndex !== -1) {
+              newSchedule[dayIndex].activities.push({
+                // Corta os segundos se vier HH:MM:SS
+                time: item.horario.substring(0, 5), 
+                name: item.titulo,
+                location: item.local
+              });
+            }
+          });
+
+          // Ordena as atividades de cada dia pelo horário
+          newSchedule.forEach((day: DaySchedule) => {
+            day.activities.sort((a, b) => a.time.localeCompare(b.time));
+          });
+
+          setSchedule(newSchedule);
+        }
+      } catch (error) {
+        console.error("Erro ao buscar horários:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchHorarios();
+  }, []);
 
   const nextDay = () => {
     setCurrentDay((prev) => (prev + 1) % schedule.length);
@@ -74,84 +94,68 @@ const Horarios = () => {
     setCurrentDay((prev) => (prev - 1 + schedule.length) % schedule.length);
   };
 
+  // Pega o dia atual baseado no estado
+  const currentScheduleData = schedule[currentDay];
+
   return (
-    // 'min-h-screen bg-background'
     <div className="horarios-page">
       <Header />
 
-      {/* 'container py-8' */}
       <main className="main-content">
-        {/* 'max-w-3xl mx-auto' */}
         <div className="horarios-container">
-          {/* 'mb-8 text-center' */}
           <div className="header-section">
-            {/* 'text-3xl font-bold text-primary mb-2' */}
             <h1 className="page-title">Horários de Atividades</h1>
-            {/* 'text-muted-foreground' */}
             <p className="page-description">Confira os horários das missas e atividades paroquiais</p>
           </div>
 
-          {/* Schedule Card */}
-          {/* 'p-8' */}
           <Card className="schedule-card">
-            {/* 'flex items-center justify-between mb-6' */}
             <div className="schedule-header">
-              <Button
-                onClick={prevDay}
-                // 'variant="ghost" size="icon" hover:bg-primary/10'
-                className="nav-button"
-              >
-                {/* 'h-6 w-6' */}
+              <Button onClick={prevDay} className="nav-button" disabled={loading}>
                 <ChevronLeft className="nav-button-icon" />
               </Button>
 
-              {/* 'text-2xl font-bold text-primary' */}
-              <h2 className="schedule-day-title">{schedule[currentDay].day}</h2>
+              <h2 className="schedule-day-title">{currentScheduleData.day}</h2>
 
-              <Button
-                onClick={nextDay}
-                className="nav-button"
-              >
+              <Button onClick={nextDay} className="nav-button" disabled={loading}>
                 <ChevronRight className="nav-button-icon" />
               </Button>
             </div>
 
-            {/* 'space-y-4' */}
             <div className="activity-list">
-              {schedule[currentDay].activities.map((activity, index) => (
-                <div
-                  key={index}
-                  // 'flex items-center justify-between p-4 rounded-lg bg-secondary/50 hover:bg-secondary transition-colors'
-                  className="activity-item"
-                >
-                  <div>
-                    {/* 'font-bold text-lg text-primary' */}
-                    <p className="activity-name">{activity.name}</p>
-                    {/* 'text-sm text-muted-foreground' */}
-                    <p className="activity-location">{activity.location}</p>
-                  </div>
-                  {/* 'text-right' */}
-                  <div className="activity-time-wrapper">
-                    {/* 'font-semibold text-lg' */}
-                    <p className="activity-time">{activity.time}</p>
-                  </div>
+              {loading ? (
+                <div className="flex justify-center py-8">
+                    <Loader2 className="animate-spin h-8 w-8 text-blue-600" />
                 </div>
-              ))}
+              ) : currentScheduleData.activities.length > 0 ? (
+                currentScheduleData.activities.map((activity, index) => (
+                  <div key={index} className="activity-item">
+                    <div>
+                      <p className="activity-name">{activity.name}</p>
+                      <p className="activity-location">{activity.location}</p>
+                    </div>
+                    <div className="activity-time-wrapper">
+                      <p className="activity-time">{activity.time}</p>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <p className="text-center text-gray-500 py-8">
+                  Nenhuma atividade cadastrada para este dia.
+                </p>
+              )}
             </div>
           </Card>
 
-          {/* Week Overview */}
-          {/* 'mt-8 grid grid-cols-7 gap-2' */}
           <div className="week-overview">
             {schedule.map((day, index) => (
               <button
                 key={index}
                 onClick={() => setCurrentDay(index)}
-                // Classe base + classe condicional
-                className={`day-selector-button ${currentDay === index
+                className={`day-selector-button ${
+                  currentDay === index
                     ? "day-selector-button--active"
                     : "day-selector-button--inactive"
-                  }`}
+                }`}
               >
                 {day.day.substring(0, 3)}
               </button>

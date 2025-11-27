@@ -1,17 +1,96 @@
-// A importação do CSS
-import "../../static/home/style.css"
-
-import { Card } from "../../components/ui/card.tsx";
+import { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
+import { Card } from "@/components/ui/card";
 import { Header } from "@/components/Header";
 import { Calendar, Bell, Clock } from "lucide-react";
-import { Link } from "react-router-dom";
+
+import "@/static/home/style.css";
+
+// Interfaces para tipagem dos dados
+interface Evento {
+  id: number;
+  titulo: string;
+  data: string;
+  horario: string;
+  local: string;
+}
+
+interface Aviso {
+  id: number;
+  titulo: string;
+  descricao: string;
+  data: string;
+}
 
 function App() {
+  const [eventos, setEventos] = useState<Evento[]>([]);
+  const [avisos, setAvisos] = useState<Aviso[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        // Faz as duas requisições simultaneamente
+        const [resEventos, resAvisos] = await Promise.all([
+          fetch("http://localhost:5000/api/v1/eventos"),
+          fetch("http://localhost:5000/api/v1/avisos")
+        ]);
+
+        if (resEventos.ok && resAvisos.ok) {
+          const dadosEventos = await resEventos.json();
+          const dadosAvisos = await resAvisos.json();
+
+          // LÓGICA DE EVENTOS:
+          // 1. Filtra para pegar apenas eventos de hoje em diante
+          // 2. Ordena pela data mais próxima
+          // 3. Pega apenas os 3 primeiros
+          const hoje = new Date();
+          hoje.setHours(0, 0, 0, 0);
+
+          const proximosEventos = dadosEventos
+            .filter((e: Evento) => new Date(e.data) >= hoje) // Filtra passados
+            .sort((a: Evento, b: Evento) => new Date(a.data).getTime() - new Date(b.data).getTime()) // Ordena Ascendente
+            .slice(0, 3); // Pega os 3 primeiros
+
+          setEventos(proximosEventos);
+
+          // LÓGICA DE AVISOS:
+          // O backend já manda ordenado por data decrescente (mais novo primeiro)
+          // Então só precisamos pegar os 3 primeiros
+          setAvisos(dadosAvisos.slice(0, 3));
+        }
+      } catch (error) {
+        console.error("Erro ao carregar dados da home:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, []);
+
+  // Função para formatar data (Ex: Sábado, 15/11)
+  const formatarDataEvento = (dataString: string) => {
+    const date = new Date(dataString);
+    // Ajuste de fuso horário simples para visualização correta
+    const userTimezoneOffset = date.getTimezoneOffset() * 60000;
+    const offsetDate = new Date(date.getTime() + userTimezoneOffset);
+    
+    return new Intl.DateTimeFormat('pt-BR', { 
+      weekday: 'long', 
+      day: 'numeric', 
+      month: 'numeric' 
+    }).format(offsetDate);
+  };
+
+  // Função para formatar data simples (Ex: 15/11/2024)
+  const formatarDataAviso = (dataString: string) => {
+    const date = new Date(dataString);
+    return date.toLocaleDateString('pt-BR', { timeZone: 'UTC' });
+  };
 
   return (
-
     <div className="index-page">
-
       <Header />
 
       <main className="main-content">
@@ -62,78 +141,58 @@ function App() {
 
       
         <div className="content-grid">
-          {/* Próximos Eventos */}
+          {/* Próximos Eventos Dinâmicos */}
           <div>
             <h2 className="section-title">Próximos Eventos</h2>
             <Card className="events-card">
               <div className="event-list">
-                <div className="event-item">
-                  <h3 className="event-item-title">Catequese Infantil</h3>
-                  <p className="event-item-detail">Sábado, 15/11 às 14h</p>
-                  <p className="event-item-detail">Salão Paroquial</p>
-                </div>
-                <div className="event-item">
-                  <h3 className="event-item-title">Missa Dominical</h3>
-                  <p className="event-item-detail">Domingo, 16/11 às 10h</p>
-                  <p className="event-item-detail">Igreja Matriz</p>
-                </div>
-                <div className="event-item">
-                  <h3 className="event-item-title">Grupo de Oração</h3>
-                  <p className="event-item-detail">Quarta, 19/11 às 19h30</p>
-                  <p className="event-item-detail">Capela</p>
-                </div>
+                {loading ? (
+                  <p className="p-4 text-gray-500">Carregando eventos...</p>
+                ) : eventos.length > 0 ? (
+                  eventos.map((evento) => (
+                    <div key={evento.id} className="event-item">
+                      <h3 className="event-item-title">{evento.titulo}</h3>
+                      <p className="event-item-detail capitalize">
+                        {formatarDataEvento(evento.data)} às {evento.horario}
+                      </p>
+                      <p className="event-item-detail">{evento.local}</p>
+                    </div>
+                  ))
+                ) : (
+                  <p className="p-4 text-gray-500">Nenhum evento próximo agendado.</p>
+                )}
               </div>
             </Card>
           </div>
 
-          {/* Últimos Avisos */}
+          {/* Últimos Avisos Dinâmicos */}
           <div>
             <h2 className="section-title">Últimos Avisos</h2>
             <div className="notice-list">
-              <Card className="notice-card">
-                <div className="notice-item">
-                  <div className="notice-icon-wrapper">
-                    <Bell className="notice-icon" />
-                  </div>
-                  <div>
-                    <h3 className="notice-title">Inscrições Abertas</h3>
-                    <p className="notice-description">
-                      Estão abertas as inscrições para a catequese de primeira comunhão 2025.
-                    </p>
-                    <span className="notice-timestamp">Há 2 dias</span>
-                  </div>
-                </div>
-              </Card>
-
-              <Card className="notice-card">
-                <div className="notice-item">
-                  <div className="notice-icon-wrapper">
-                    <Bell className="notice-icon" />
-                  </div>
-                  <div>
-                    <h3 className="notice-title">Horário Especial</h3>
-                    <p className="notice-description">
-                      No próximo domingo haverá missa especial às 18h para celebração do padroeiro.
-                    </p>
-                    <span className="notice-timestamp">Há 5 dias</span>
-                  </div>
-                </div>
-              </Card>
-
-              <Card className="notice-card">
-                <div className="notice-item">
-                  <div className="notice-icon-wrapper">
-                    <Bell className="notice-icon" />
-                  </div>
-                  <div>
-                    <h3 className="notice-title">Campanha Solidária</h3>
-                    <p className="notice-description">
-                      Participe da campanha de arrecadação de alimentos para famílias carentes.
-                    </p>
-                    <span className="notice-timestamp">Há 1 semana</span>
-                  </div>
-                </div>
-              </Card>
+              {loading ? (
+                 <p className="text-gray-500">Carregando avisos...</p>
+              ) : avisos.length > 0 ? (
+                avisos.map((aviso) => (
+                  <Card key={aviso.id} className="notice-card">
+                    <div className="notice-item">
+                      <div className="notice-icon-wrapper">
+                        <Bell className="notice-icon" />
+                      </div>
+                      <div>
+                        <h3 className="notice-title">{aviso.titulo}</h3>
+                        <p className="notice-description line-clamp-2">
+                          {aviso.descricao}
+                        </p>
+                        <span className="notice-timestamp">
+                          {formatarDataAviso(aviso.data)}
+                        </span>
+                      </div>
+                    </div>
+                  </Card>
+                ))
+              ) : (
+                <p className="text-gray-500">Nenhum aviso encontrado.</p>
+              )}
             </div>
           </div>
         </div>
@@ -142,4 +201,4 @@ function App() {
   );
 }
 
-export default App
+export default App;

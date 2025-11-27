@@ -1,113 +1,139 @@
+import { useState, useEffect } from "react";
 import { HeaderSecretaria } from "@/components/HeaderSecretaria";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Users, Calendar, FileText, TrendingUp } from "lucide-react";
-
-import "@/static/home/home-admin.css"
+import { Users, Calendar, FileText, Clock, Activity } from "lucide-react";
+import "@/static/home/home-admin.css";
 
 const Admin = () => {
-  const stats = [
+  // Estado para armazenar os dados vindos do Python
+  const [dashboardData, setDashboardData] = useState({
+    stats: {
+      eventos: 0,
+      avisos: 0,
+      agenda: 0,
+      horarios: 0
+    },
+    activity: []
+  });
+
+  const [loading, setLoading] = useState(true);
+
+  // Busca os dados assim que o componente monta
+  useEffect(() => {
+    const fetchDashboard = async () => {
+      try {
+        const response = await fetch("http://localhost:5000/api/v1/dashboard");
+        if (response.ok) {
+          const data = await response.json();
+          setDashboardData(data);
+        } else {
+          console.error("Erro ao buscar dados do dashboard");
+        }
+      } catch (error) {
+        console.error("Erro de conexão:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchDashboard();
+  }, []);
+
+  // Mapeamento dos dados do backend para os Cards visuais
+  // Observação: O backend retorna 'agenda' e 'horarios', então ajustei os títulos dos cards
+  const statsCards = [
     {
-      title: "Total de Membros",
-      value: "247",
-      description: "+12 este mês",
-      icon: Users,
-      trend: "+4.8%"
+      title: "Agendamentos",
+      value: dashboardData.stats.agenda,
+      description: "Total registrado",
+      icon: Users, // Usando ícone de usuários/agenda
+      trend: "Ativos" 
     },
     {
-      title: "Eventos Ativos",
-      value: "15",
-      description: "Próximos 30 dias",
+      title: "Eventos",
+      value: dashboardData.stats.eventos,
+      description: "Cadastrados no sistema",
       icon: Calendar,
-      trend: "+2"
+      trend: "Total"
     },
     {
-      title: "Avisos Publicados",
-      value: "8",
-      description: "Este mês",
+      title: "Avisos",
+      value: dashboardData.stats.avisos,
+      description: "Publicados no mural",
       icon: FileText,
-      trend: "+3"
+      trend: "Visíveis"
     },
     {
-      title: "Inscrições em Eventos",
-      value: "128",
-      description: "Total ativo",
-      icon: TrendingUp,
-      trend: "+18%"
+      title: "Horários de Missa",
+      value: dashboardData.stats.horarios,
+      description: "Missas/Confissões",
+      icon: Clock, // Troquei para Clock para fazer sentido com Horários
+      trend: "Fixos"
     }
   ];
 
-  const recentActivity = [
-    { action: "Novo membro cadastrado", user: "Maria Silva", time: "há 2 horas" },
-    { action: "Inscrição em evento", user: "João Santos", time: "há 3 horas" },
-    { action: "Aviso publicado", user: "Secretaria", time: "há 5 horas" },
-    { action: "Evento criado", user: "Secretaria", time: "há 1 dia" },
-    { action: "Membro atualizado", user: "Ana Costa", time: "há 2 dias" }
-  ];
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <p className="text-lg animate-pulse">Carregando painel paroquial...</p>
+      </div>
+    );
+  }
 
   return (
-    // 'min-h-screen bg-gradient-to-b from-background to-background/80'
     <div className="admin-page">
       <HeaderSecretaria />
       
-      {/* 'container mx-auto px-4 py-8' */}
       <main className="admin-main-container">
-        {/* 'mb-8' */}
         <div className="admin-header-section">
-          {/* 'text-4xl font-bold text-foreground mb-2' */}
           <h1 className="admin-title">Painel Administrativo</h1>
-          {/* 'text-muted-foreground' */}
           <p className="admin-description">Visão geral da gestão paroquial</p>
         </div>
 
-        {/* Stats Grid */}
-        {/* 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8' */}
+        {/* Stats Grid - Dados Reais */}
         <div className="stats-grid">
-          {stats.map((stat, index) => (
-            // 'hover:shadow-lg transition-shadow'
+          {statsCards.map((stat, index) => (
             <Card key={index} className="stat-card">
-              {/* 'flex flex-row items-center justify-between pb-2' */}
               <CardHeader className="stat-card-header">
-                {/* 'text-sm font-medium text-muted-foreground' */}
                 <CardTitle className="stat-card-title">
                   {stat.title}
                 </CardTitle>
-                {/* 'h-4 w-4 text-primary' */}
                 <stat.icon className="stat-card-icon" />
               </CardHeader>
               <CardContent>
-                {/* 'text-3xl font-bold text-foreground mb-1' */}
                 <div className="stat-value">{stat.value}</div>
-                {/* 'text-xs text-muted-foreground mb-2' */}
                 <p className="stat-description">{stat.description}</p>
-                {/* 'text-xs font-medium text-primary' */}
                 <span className="stat-trend">{stat.trend}</span>
               </CardContent>
             </Card>
           ))}
         </div>
 
-        {/* Recent Activity */}
+        {/* Recent Activity - Dados Reais */}
         <Card>
           <CardHeader>
-            <CardTitle>Atividade Recente</CardTitle>
+            <CardTitle className="flex items-center gap-2">
+              <Activity className="h-5 w-5" />
+              Atividade Recente
+            </CardTitle>
             <CardDescription>Últimas ações realizadas no sistema</CardDescription>
           </CardHeader>
           <CardContent>
-            {/* 'space-y-4' */}
             <div className="activity-list">
-              {recentActivity.map((activity, index) => (
-                // 'flex items-center justify-between py-3 border-b last:border-b-0'
-                <div key={index} className="activity-item">
-                  <div>
-                    {/* 'font-medium text-foreground' */}
-                    <p className="activity-action">{activity.action}</p>
-                    {/* 'text-sm text-muted-foreground' */}
-                    <p className="activity-user">{activity.user}</p>
+              {dashboardData.activity.length === 0 ? (
+                <p className="text-muted-foreground py-4">Nenhuma atividade recente encontrada.</p>
+              ) : (
+                dashboardData.activity.map((activity: any, index: number) => (
+                  <div key={index} className="activity-item">
+                    <div>
+                      <p className="activity-action">{activity.action}</p>
+                      {/* O Backend retorna 'item' (ex: nome do evento), usamos aqui */}
+                      <p className="activity-user">{activity.item}</p>
+                    </div>
+                    {/* O backend ainda não manda o tempo exato, então deixamos um placeholder ou tratamos depois */}
                   </div>
-                  {/* 'text-sm text-muted-foreground' */}
-                  <span className="activity-time">{activity.time}</span>
-                </div>
-              ))}
+                ))
+              )}
             </div>
           </CardContent>
         </Card>
