@@ -26,6 +26,33 @@ type Evento = {
   description: string;
 };
 
+// FUNÇÃO UTILITÁRIA PARA VERIFICAR SE O EVENTO ESTÁ NO PASSADO
+const isEventInPast = (event: Evento): boolean => {
+    // Cria uma string de data/hora no formato ISO 8601 (YYYY-MM-DDTTHH:MM)
+    const eventDateTimeString = `${event.date}T${event.time}`;
+    const eventDateTime = new Date(eventDateTimeString);
+
+    // Obtém a data/hora atual
+    const now = new Date();
+
+    // Compara se a data do evento é anterior ou igual à data/hora atual
+    return eventDateTime <= now;
+};
+
+  const isFormDateInPast = (formData: any): boolean => {
+    if (!formData.data || !formData.horario) return false;
+
+    // Combina a data (YYYY-MM-DD) e o horário (HH:MM) para criar um objeto Date
+    const eventDateTimeString = `${formData.data}T${formData.horario}:00`; // Adiciona segundos :00
+    const eventDateTime = new Date(eventDateTimeString);
+
+    // Obtém o momento atual para comparação.
+    const now = new Date();
+    
+    // Compara se a data/hora do evento é estritamente anterior à data/hora atual.
+    return eventDateTime < now; 
+};
+
 const Eventos = () => {
   const { toast } = useToast();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -44,6 +71,15 @@ const Eventos = () => {
     horario: "",
     descricao: ""
   });
+
+  const getLocalISODate = (date: Date): string => {
+    const offset = date.getTimezoneOffset() * 60000; // offset em ms
+    const localTime = new Date(date.getTime() - offset);
+    return localTime.toISOString().split('T')[0];
+}
+
+  // Obter a data de hoje no formato YYYY-MM-DD para o atributo 'min' do input
+  const todayDateString = getLocalISODate(new Date());
 
   // Função para atualizar o estado quando digitar
   const handleInputChange = (field: string, value: any) => {
@@ -101,42 +137,52 @@ const Eventos = () => {
   };
 
   // --- ATUALIZADO: Função única para Salvar (Criar ou Editar) ---
-  const handleSaveEvent = async () => {
+const handleSaveEvent = async () => {
     try {
-      // Define a URL e o Método baseado se estamos editando ou criando
-      const url = editingId
-        ? `http://localhost:5000/api/v1/eventos/${editingId}`
-        : 'http://localhost:5000/api/v1/eventos';
+        // VALIDAÇÃO DE DATA
+        if (isFormDateInPast(formData)) {
+            toast({
+                variant: "destructive",
+                title: "Erro de Data",
+                description: "Não é possível criar ou editar um evento para uma data passada."
+            });
+            return; // Interrompe a execução se a data for inválida
+        }
 
-      const method = editingId ? 'PUT' : 'POST';
+        // Define a URL e o Método baseado se estamos editando ou criando
+        const url = editingId
+            ? `http://localhost:5000/api/v1/eventos/${editingId}`
+            : 'http://localhost:5000/api/v1/eventos';
 
-      const response = await fetch(url, {
-        method: method,
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(formData),
-      });
+        const method = editingId ? 'PUT' : 'POST';
 
-      if (response.ok) {
-        toast({
-          title: "Sucesso!",
-          description: editingId ? "Evento atualizado com sucesso." : "Evento criado com sucesso."
+        const response = await fetch(url, {
+            method: method,
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(formData),
         });
 
-        fetchEventos(); // Atualiza a lista
-        resetForm(); // Limpa e fecha
-      } else {
-        throw new Error('Erro ao salvar');
-      }
+        if (response.ok) {
+            toast({
+                title: "Sucesso!",
+                description: editingId ? "Evento atualizado com sucesso." : "Evento criado com sucesso."
+            });
+
+            fetchEventos(); // Atualiza a lista
+            resetForm(); // Limpa e fecha
+        } else {
+            throw new Error('Erro ao salvar');
+        }
     } catch (error) {
-      toast({
-        variant: "destructive",
-        title: "Erro",
-        description: "Não foi possível salvar o evento."
-      });
+        toast({
+            variant: "destructive",
+            title: "Erro",
+            description: "Não foi possível salvar o evento."
+        });
     }
-  };
+};
 
   // --- NOVO: Função para preencher o formulário ao clicar em Editar ---
   const handleEditClick = (evento: Evento) => {
@@ -203,7 +249,44 @@ const Eventos = () => {
           description: evt.descricao
         }));
 
-        setEvents(eventosFormatados);
+        // NOVO: LÓGICA DE LIMPEZA AUTOMÁTICA DE EVENTOS PASSADOS
+        const pastEvents = eventosFormatados.filter(isEventInPast);
+        let successfulDeletions = 0;
+
+        if (pastEvents.length > 0) {
+            console.log(`[CLEANUP] Encontrados ${pastEvents.length} eventos passados para exclusão...`);
+            
+            // Itera e exclui cada evento passado SILENCIOSAMENTE
+            for (const event of pastEvents) {
+                try {
+                    const deleteResponse = await fetch(`http://localhost:5000/api/v1/eventos/${event.id}`, {
+                        method: 'DELETE'
+                    });
+
+                    if (deleteResponse.ok) {
+                        successfulDeletions++;
+                    } else {
+                        console.error(`[CLEANUP ERROR] Falha ao excluir evento ${event.id}`);
+                    }
+                } catch (error) {
+                    console.error(`[CLEANUP ERROR] Erro de rede ao excluir evento ${event.id}:`, error);
+                }
+            }
+
+            if (successfulDeletions > 0) {
+                toast({
+                    title: "Limpeza automática concluída",
+                    description: `${successfulDeletions} evento(s) passado(s) foram excluído(s) da agenda.`
+                });
+
+                // RECURSIVO: Chama fetchEventos novamente para carregar a lista limpa e sai
+                await fetchEventos();
+                return;
+            }
+        }
+        // FIM DA LÓGICA DE LIMPEZA AUTOMÁTICA
+        
+        setEvents(eventosFormatados);
       }
     } catch (error) {
       console.error("Erro ao buscar eventos:", error);
@@ -345,6 +428,7 @@ const Eventos = () => {
                           <Input
                             id="event-date"
                             type="date"
+                            min={!editingId ? todayDateString : undefined}
                             value={formData.data}
                             onChange={(e) => handleInputChange('data', e.target.value)}
                           />
