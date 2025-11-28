@@ -40,17 +40,17 @@ const isEventInPast = (event: Evento): boolean => {
 };
 
   const isFormDateInPast = (formData: any): boolean => {
-    if (!formData.data || !formData.horario) return false;
+    if (!formData.data || !formData.horario) return false;
 
-    // Combina a data (YYYY-MM-DD) e o horário (HH:MM) para criar um objeto Date
-    const eventDateTimeString = `${formData.data}T${formData.horario}:00`; // Adiciona segundos :00
-    const eventDateTime = new Date(eventDateTimeString);
+    // Combina a data (YYYY-MM-DD) e o horário (HH:MM) para criar um objeto Date
+    const eventDateTimeString = `${formData.data}T${formData.horario}:00`; // Adiciona segundos :00
+    const eventDateTime = new Date(eventDateTimeString);
 
-    // Obtém o momento atual para comparação.
-    const now = new Date();
-    
-    // Compara se a data/hora do evento é estritamente anterior à data/hora atual.
-    return eventDateTime < now; 
+    // Obtém o momento atual para comparação.
+    const now = new Date();
+    
+    // Compara se a data/hora do evento é estritamente anterior à data/hora atual.
+    return eventDateTime < now; 
 };
 
 const Eventos = () => {
