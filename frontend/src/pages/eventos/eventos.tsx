@@ -29,6 +29,9 @@ const Eventos = () => {
   // --- NOVOS ESTADOS PARA A INSCRIÇÃO ---
   const [selectedEvent, setSelectedEvent] = useState<EventoUI | null>(null);
   const [subForm, setSubForm] = useState({ nome: "", telefone: "" });
+  
+  // estado para termos de busca
+  const [searchTerm, setSearchTerm] = useState("");
 
   // Array de categorias para os botões de filtro
   const categories = ["TODOS", "FORMAÇÃO", "ESPIRITUALIDADE", "FESTIVIDADE", "AÇÃO SOCIAL", "ADMINISTRATIVO"];
@@ -81,9 +84,26 @@ const Eventos = () => {
     fetchEventos();
   }, []);
 
-  const filteredEventos = filter === "TODOS" 
-    ? events 
-    : events.filter(e => e.category === filter);
+  const filteredEventos = events.filter(e => {
+  // Filtro por Categoria
+  const matchesCategory = filter === "TODOS" || e.category === filter;
+
+  // Prepara o Termo de Busca
+  const lowerCaseSearchTerm = searchTerm.toLowerCase().trim();
+
+  if (!lowerCaseSearchTerm) {
+    // Se não houver termo de busca, apenas retorna o resultado da categoria
+    return matchesCategory;
+  }
+
+  // Filtro por Termo de Busca (Título ou Descrição)
+  const matchesSearch = 
+    e.title.toLowerCase().includes(lowerCaseSearchTerm) || // Busca por Título
+    e.description.toLowerCase().includes(lowerCaseSearchTerm); // Busca por Descrição
+
+  // O evento deve satisfazer AMBOS os filtros (Categoria E Busca)
+  return matchesCategory && matchesSearch;
+});
 
   // --- FUNÇÕES DE MANIPULAÇÃO DO MODAL ---
   
@@ -123,11 +143,14 @@ const Eventos = () => {
             <p className="page-description">Confira todos os eventos e atividades da paróquia</p>
           </div>
 
+          {/* Search Bar */}
           <div className="search-bar-wrapper">
             <Search className="search-icon" />
             <Input 
               placeholder="Buscar eventos..." 
               className="search-input"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
 
