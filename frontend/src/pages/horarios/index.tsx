@@ -27,8 +27,14 @@ interface DaySchedule {
   activities: Activity[];
 }
 
+  // Retorna um número de 0 (Domingo) a 6 (Sábado)
+  const getCurrentDayIndex = () => {
+  const today = new Date();
+  return today.getDay(); 
+};
+
 const Horarios = () => {
-  const [currentDay, setCurrentDay] = useState(0);
+  const [currentDay, setCurrentDay] = useState(getCurrentDayIndex());
   const [loading, setLoading] = useState(true);
   
   // Estrutura base dos dias para garantir a ordem correta (Domingo a Sábado)
