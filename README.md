@@ -16,4 +16,4 @@ Criado a tabela:
 
 Instalar requisitos no ambiente do backend
 
-  ip install -r requirements.txt
+  pip install -r requirements.txt
