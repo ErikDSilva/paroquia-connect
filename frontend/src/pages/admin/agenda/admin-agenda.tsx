@@ -183,7 +183,7 @@ const AdminAgenda = () => {
             <div className="card-header-wrapper">
               <div>
                 <CardTitle>Agenda Paroquial</CardTitle>
-                <CardDescription>Total de {events.length} eventos cadastrados</CardDescription>
+                <CardDescription>Total de {events.length} agenda cadastrados</CardDescription>
               </div>
 
               <div className="controls-group">
