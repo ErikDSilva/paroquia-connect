@@ -1,8 +1,10 @@
 from flask import Flask, jsonify
+from flask_mail import Mail
 from flask_cors import CORS
 from .config import Config
 from .models.config import db  # Importa a conexão do banco
-from .api import api_bp        # Importa o blueprint da API
+
+mail = Mail()
 
 def create_app(config_class=Config):
     """Cria e configura a instância da aplicação Flask (Application Factory)."""
@@ -18,6 +20,8 @@ def create_app(config_class=Config):
         }
     }, supports_credentials=True)
 
+    mail.init_app(app)
+
     # 2. Gerenciamento de Conexão com Banco de Dados
     # (Movido do run.py para cá para garantir que funcione em toda a app)
     @app.before_request
@@ -32,6 +36,8 @@ def create_app(config_class=Config):
 
     # 3. Registro de Blueprints com Prefixo
     # Isso garante que a rota seja acessível em /api/v1/eventos
+    
+    from .api import api_bp # Importa o blueprint da API  
     app.register_blueprint(api_bp, url_prefix='/api/v1')
 
     # Rota de teste simples
