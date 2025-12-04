@@ -35,7 +35,7 @@ const Contato = () => {
     const handleSubmit = async (e: FormEvent) => {
         e.preventDefault();
 
-        const FLASK_API_URL = 'http://localhost:5000/api/v1/enviar-email'; 
+        const FLASK_API_URL = 'https://symmetrical-rotary-phone-j7jgw56qqqq25prr-5000.app.github.dev/api/v1/enviar-email'; 
 
         setLoading(true);
         setStatus('');

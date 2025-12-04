@@ -14,11 +14,12 @@ def create_app(config_class=Config):
 
     # 1. Configuração do CORS (CRÍTICO para resolver o erro net::ERR_FAILED)
     # Permite que o front-end (localhost:5173) faça requisições para este back-end
-    CORS(app, resources={
-        r"/api/*": {
-            "origins": app.config.get('CORS_ORIGINS', '*')
-        }
-    }, supports_credentials=True)
+    # CORS(app, resources={
+    #     r"/api/*": {
+    #         "origins": app.config.get('CORS_ORIGINS', '*')
+    #     }
+    # }, supports_credentials=True)
+    CORS(app)
 
     mail.init_app(app)
 

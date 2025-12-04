@@ -436,7 +436,7 @@ def delete_horario(id):
         return jsonify({"error": str(e)}), 500
 
 # ROTA DE ENVIO DE E-MAIL
-@api_bp.route('/enviar-email', methods=['POST'])
+@api_bp.route('/enviar-email', methods=['POST', "OPTIONS"])
 def send_email():
     try:
         data = request.get_json()
