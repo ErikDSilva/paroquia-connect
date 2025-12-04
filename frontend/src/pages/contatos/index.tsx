@@ -1,3 +1,5 @@
+import { useState } from "react";
+import type { ChangeEvent, FormEvent } from "react";
 import { Header } from "@/components/Header";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -7,6 +9,67 @@ import { MapPin, Phone, Mail } from "lucide-react";
 import "@/static/contatos/style.css"
 
 const Contato = () => {
+
+  // Estado para armazenar os dados do formulário
+    const [formData, setFormData] = useState({
+        nome: '',
+        email: '',
+        telefone: '',
+        assunto: '',
+        mensagem: '',
+    });
+
+    const [loading, setLoading] = useState(false);
+    const [status, setStatus] = useState('');
+
+    // Função para atualizar o estado quando um campo muda
+    const handleChange = (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+        const { name, value } = e.target;
+        setFormData(prevState => ({
+            ...prevState,
+            [name]: value,
+        }));
+    };
+
+    // Função de submissão para enviar os dados para o backend Flask
+    const handleSubmit = async (e: FormEvent) => {
+        e.preventDefault();
+
+        const FLASK_API_URL = 'http://localhost:5000/api/v1/enviar-email'; 
+
+        setLoading(true);
+        setStatus('');
+
+        try {
+            const response = await fetch(FLASK_API_URL, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                // Envia os dados como JSON
+                body: JSON.stringify(formData),
+            });
+
+            if (response.ok) {
+                setStatus('success');
+                // Limpa o formulário após o envio bem-sucedido
+                setFormData({ nome: '', email: '', telefone: '', assunto: '', mensagem: '' });
+            } else {
+                // Captura o erro retornado pelo Flask, se houver
+                const errorData = await response.json();
+                console.error('Erro ao enviar mensagem:', errorData.error);
+                setStatus('error');
+            }
+        } catch (error) {
+            console.error('Erro de rede:', error);
+            setStatus('error');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const isFormValid = formData.nome.trim() && formData.email.trim() && formData.assunto.trim() && formData.mensagem.trim();
+
   return (
     <div className="contato-page">
       <Header />
@@ -90,26 +153,26 @@ const Contato = () => {
             <Card className="form-card">
               <h2 className="card-title">Enviar Mensagem</h2>
               
-              <form className="contact-form">
+              <form className="contact-form" onSubmit={handleSubmit}>
                 <div className="form-row">
                   <div className="form-group">
                     <label className="form-label">Nome</label>
-                    <Input placeholder="Seu nome" />
+                    <Input placeholder="Seu nome" name="nome" value={formData.nome} onChange={handleChange} required />
                   </div>
                   <div className="form-group">
                     <label className="form-label">Email</label>
-                    <Input type="email" placeholder="seu@email.com" />
+                    <Input type="email" placeholder="seu@email.com" name="email" value={formData.email} onChange={handleChange} required />
                   </div>
                 </div>
 
                 <div className="form-group">
                   <label className="form-label">Telefone</label>
-                  <Input placeholder="(11) 12345-6789" />
+                  <Input placeholder="(11) 12345-6789" name="telefone" value={formData.telefone} onChange={handleChange}/>
                 </div>
 
                 <div className="form-group">
                   <label className="form-label">Assunto</label>
-                  <Input placeholder="Sobre o que deseja falar?" />
+                  <Input placeholder="Sobre o que deseja falar?" name="assunto" value={formData.assunto} onChange={handleChange} required />
                 </div>
 
                 <div className="form-group">
@@ -117,11 +180,26 @@ const Contato = () => {
                   <Textarea 
                     placeholder="Digite sua mensagem aqui..." 
                     className="textarea-input"
+                    name="mensagem"
+                    value={formData.mensagem}
+                    onChange={handleChange}
+                    required
                   />
                 </div>
 
-                <Button className="submit-button" size="lg">
-                  ENVIAR MENSAGEM
+                {status === 'success' && (
+                  <p style={{ color: 'green', fontWeight: 'bold', marginTop: '10px' }}>
+                    Mensagem enviada com sucesso!
+                  </p>
+                  )}
+                {status === 'error' && (
+                  <p style={{ color: 'red', fontWeight: 'bold', marginTop: '10px' }}>
+                  Erro ao enviar. Tente novamente.
+                  </p>
+                )}
+
+                <Button className="submit-button" size="lg" type="submit" disabled={loading || !isFormValid}>
+                  {loading ? 'Enviando...' : 'Enviar Mensagem'}
                 </Button>
               </form>
             </Card>
