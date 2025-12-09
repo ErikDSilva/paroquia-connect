@@ -1,12 +1,4 @@
-:root {
-  --background: #ffffff;
-  --foreground: #09090b;
-  --primary: #18181b;
-  --primary-foreground: #fafafa;
-  --muted-foreground: #71717a;
-  --accent: #f4f4f5;
-  --accent-hover: #e4e4e7;
-}
+
 
 .auth-page {
   min-height: 100vh;
