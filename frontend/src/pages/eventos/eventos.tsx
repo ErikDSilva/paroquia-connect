@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label"; // Importe o Label
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Search, Calendar, MapPin, Users } from "lucide-react";
 import { useState, useEffect } from "react";
 
@@ -29,7 +29,7 @@ const Eventos = () => {
   // --- NOVOS ESTADOS PARA A INSCRIÇÃO ---
   const [selectedEvent, setSelectedEvent] = useState<EventoUI | null>(null);
   const [subForm, setSubForm] = useState({ nome: "", telefone: "" });
-  
+
   // estado para termos de busca
   const [searchTerm, setSearchTerm] = useState("");
 
@@ -71,7 +71,7 @@ const Eventos = () => {
             time: evt.horario,
             location: evt.local,
             category: mapCategoryName(evt.tipo),
-            spots: evt.numero_vagas 
+            spots: evt.numero_vagas
           }));
 
           setEvents(mappedEvents);
@@ -85,28 +85,28 @@ const Eventos = () => {
   }, []);
 
   const filteredEventos = events.filter(e => {
-  // Filtro por Categoria
-  const matchesCategory = filter === "TODOS" || e.category === filter;
+    // Filtro por Categoria
+    const matchesCategory = filter === "TODOS" || e.category === filter;
 
-  // Prepara o Termo de Busca
-  const lowerCaseSearchTerm = searchTerm.toLowerCase().trim();
+    // Prepara o Termo de Busca
+    const lowerCaseSearchTerm = searchTerm.toLowerCase().trim();
 
-  if (!lowerCaseSearchTerm) {
-    // Se não houver termo de busca, apenas retorna o resultado da categoria
-    return matchesCategory;
-  }
+    if (!lowerCaseSearchTerm) {
+      // Se não houver termo de busca, apenas retorna o resultado da categoria
+      return matchesCategory;
+    }
 
-  // Filtro por Termo de Busca (Título ou Descrição)
-  const matchesSearch = 
-    e.title.toLowerCase().includes(lowerCaseSearchTerm) || // Busca por Título
-    e.description.toLowerCase().includes(lowerCaseSearchTerm); // Busca por Descrição
+    // Filtro por Termo de Busca (Título ou Descrição)
+    const matchesSearch =
+      e.title.toLowerCase().includes(lowerCaseSearchTerm) || // Busca por Título
+      e.description.toLowerCase().includes(lowerCaseSearchTerm); // Busca por Descrição
 
-  // O evento deve satisfazer AMBOS os filtros (Categoria E Busca)
-  return matchesCategory && matchesSearch;
-});
+    // O evento deve satisfazer AMBOS os filtros (Categoria E Busca)
+    return matchesCategory && matchesSearch;
+  });
 
   // --- FUNÇÕES DE MANIPULAÇÃO DO MODAL ---
-  
+
   // Abre o modal e limpa o formulário anterior
   const handleOpenSubscribe = (evento: EventoUI) => {
     setSelectedEvent(evento);
@@ -119,23 +119,49 @@ const Eventos = () => {
   };
 
   // Simula o envio da inscrição
-  const handleSubmitSubscription = (e: React.FormEvent) => {
+  const handleSubmitSubscription = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    // AQUI VOCÊ CONECTARÁ COM O BACKEND FUTURAMENTE
-    console.log("Enviando inscrição:", {
-      eventoId: selectedEvent?.id,
-      ...subForm
-    });
 
-    alert(`Inscrição realizada com sucesso para: ${selectedEvent?.title}!`);
-    handleCloseSubscribe();
+    if (!selectedEvent) return;
+
+    try {
+      const response = await fetch(
+        // Chamando a nova rota com o ID do evento na URL
+        `http://localhost:5000/api/v1/eventos/${selectedEvent.id}/inscricao`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            nome: subForm.nome,
+            telefone: subForm.telefone, // Enviando 'telefone' para o backend
+          }),
+        }
+      );
+
+      const data = await response.json();
+
+      if (response.ok) {
+        // Sucesso (código 201)
+        alert(`Inscrição realizada com sucesso para: ${selectedEvent.title}!`);
+        handleCloseSubscribe();
+        // Opcional: Recarregar a lista de eventos se a contagem de vagas for importante
+        // fetchEventos(); 
+      } else {
+        // Erro (Ex: 400, 403 - vagas esgotadas, 404)
+        alert(`Falha na inscrição: ${data.error || 'Erro desconhecido.'}`);
+      }
+    } catch (error) {
+      console.error("Erro de conexão ao inscrever:", error);
+      alert("Erro de rede. Não foi possível conectar ao servidor para a inscrição.");
+    }
   };
 
   return (
     <div className="eventos-page">
       <Header />
-      
+
       <main className="main-content">
         <div className="eventos-container">
           <div className="header-section">
@@ -146,8 +172,8 @@ const Eventos = () => {
           {/* Search Bar */}
           <div className="search-bar-wrapper">
             <Search className="search-icon" />
-            <Input 
-              placeholder="Buscar eventos..." 
+            <Input
+              placeholder="Buscar eventos..."
               className="search-input"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
@@ -160,11 +186,10 @@ const Eventos = () => {
               <Button
                 key={cat}
                 onClick={() => setFilter(cat)}
-                className={`filter-button ${
-                  filter === cat
+                className={`filter-button ${filter === cat
                     ? "filter-button--active"
                     : "filter-button--inactive"
-                }`}
+                  }`}
               >
                 {cat}
               </Button>
@@ -183,7 +208,7 @@ const Eventos = () => {
                     </Badge>
                   </div>
                   <p className="event-description">{evento.description}</p>
-                  
+
                   <div className="event-details-list">
                     <div className="event-detail-item">
                       <Calendar className="event-detail-icon" />
@@ -201,7 +226,7 @@ const Eventos = () => {
                     )}
                   </div>
 
-                  <Button 
+                  <Button
                     className="event-subscribe-button"
                     onClick={() => handleOpenSubscribe(evento)}
                   >
@@ -227,7 +252,7 @@ const Eventos = () => {
               Você está se inscrevendo para: <strong>{selectedEvent?.title}</strong>
             </DialogDescription>
           </DialogHeader>
-          
+
           <form onSubmit={handleSubmitSubscription} className="grid gap-4 py-4">
             <div className="grid gap-2">
               <Label htmlFor="nome">Nome Completo</Label>
@@ -235,7 +260,7 @@ const Eventos = () => {
                 id="nome"
                 placeholder="Digite seu nome"
                 value={subForm.nome}
-                onChange={(e) => setSubForm({...subForm, nome: e.target.value})}
+                onChange={(e) => setSubForm({ ...subForm, nome: e.target.value })}
                 required
               />
             </div>
@@ -245,7 +270,7 @@ const Eventos = () => {
                 id="telefone"
                 placeholder="(00) 00000-0000"
                 value={subForm.telefone}
-                onChange={(e) => setSubForm({...subForm, telefone: e.target.value})}
+                onChange={(e) => setSubForm({ ...subForm, telefone: e.target.value })}
                 required
               />
             </div>

@@ -5,8 +5,8 @@ import Avisos from "../pages/avisos/index.tsx"
 import Contato from "../pages/contatos/index.tsx"
 import Horarios from "../pages/horarios/index.tsx";
 import Eventos from "../pages/eventos/eventos.tsx";
-import Auth from "../pages/auth.tsx"; // ADICIONEI ISSO: Importe sua página de login
-import ProtectedRoute from "@/components/ProtectedRoute.tsx"; // Importe a proteção
+import Auth from "../pages/auth.tsx"; 
+import ProtectedRoute from "@/components/ProtectedRoute.tsx";
 
 // Admin Pages
 import AdminAgenda from "@/pages/admin/agenda/admin-agenda.tsx";

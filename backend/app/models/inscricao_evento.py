@@ -5,7 +5,6 @@ from .eventos import Evento
 class InscricaoEvento(BaseModel):
     id = AutoField()
     nome = CharField(max_length=150)
-    data_nascimento = DateField()
     numero = CharField(max_length=13)
 
     # Relação
