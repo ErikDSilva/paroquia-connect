@@ -5,7 +5,7 @@ from ..models.agenda import Agenda;
 from ..models.avisos import Aviso;
 from ..models.horario import Horario;
 from flask_mail import Message
-from .. import mail
+from ..extensions import mail
 
 # O prefixo /api/v1 já foi definido no create_app
 # Rota: http://localhost:5000/api/v1/data

@@ -1,10 +1,11 @@
 from flask import Flask, jsonify
-from flask_mail import Mail
 from flask_cors import CORS
 from .config import Config
-from .models.config import db  # Importa a conexão do banco
+from .models.config import db
 
-mail = Mail()
+# 1. IMPORTAR AS EXTENSÕES DO ARQUIVO SEPARADO
+# Isso evita o erro de "circular import"
+from .extensions import mail, login_manager
 
 def create_app(config_class=Config):
     """Cria e configura a instância da aplicação Flask (Application Factory)."""
@@ -12,19 +13,21 @@ def create_app(config_class=Config):
     app = Flask(__name__)
     app.config.from_object(config_class)
 
-    # 1. Configuração do CORS (CRÍTICO para resolver o erro net::ERR_FAILED)
-    # Permite que o front-end (localhost:5173) faça requisições para este back-end
-    # CORS(app, resources={
-    #     r"/api/*": {
-    #         "origins": app.config.get('CORS_ORIGINS', '*')
-    #     }
-    # }, supports_credentials=True)
-    CORS(app)
+    # 2. CONFIGURAR O LOGIN MANAGER
+    login_manager.init_app(app)
+    login_manager.login_view = 'auth.login' # Define a rota de login padrão
 
+    # Configuração do CORS
+    CORS(app, resources={
+        r"/api/*": {
+            "origins": app.config.get('CORS_ORIGINS', '*')
+        }
+    }, supports_credentials=True)
+
+    # 3. INICIAR O MAIL
     mail.init_app(app)
 
-    # 2. Gerenciamento de Conexão com Banco de Dados
-    # (Movido do run.py para cá para garantir que funcione em toda a app)
+    # Gerenciamento de Conexão com Banco de Dados
     @app.before_request
     def _db_connect():
         if db.is_closed():
@@ -35,15 +38,24 @@ def create_app(config_class=Config):
         if not db.is_closed():
             db.close()
 
-    # 3. Registro de Blueprints com Prefixo
-    # Isso garante que a rota seja acessível em /api/v1/eventos
-    
-    from .api import api_bp # Importa o blueprint da API  
+    # 4. REGISTRAR BLUEPRINTS
+    # Importamos aqui dentro para garantir que tudo acima já esteja pronto
+    from .api import api_bp 
     app.register_blueprint(api_bp, url_prefix='/api/v1')
+    
+    from .api.auth_routes import auth_bp
+    app.register_blueprint(auth_bp, url_prefix='/api/v1/auth')
 
-    # Rota de teste simples
+    # Rota de teste
     @app.route('/health')
     def health_check():
         return jsonify({"status": "healthy"}), 200
 
     return app
+
+# 5. CARREGADOR DE USUÁRIO
+# Mantemos fora da factory, decorando o objeto importado de extensions
+@login_manager.user_loader
+def load_user(user_id):
+    from .models.usuario import Usuario
+    return Usuario.get_or_none(Usuario.idusuario == int(user_id))
