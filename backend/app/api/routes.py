@@ -1,6 +1,7 @@
 from flask import request, jsonify, current_app
 from . import api_bp
 from ..models.eventos import Evento;
+from ..models.inscricao_evento import InscricaoEvento;
 from ..models.agenda import Agenda;
 from ..models.avisos import Aviso;
 from ..models.horario import Horario;
@@ -109,11 +110,15 @@ def create_evento():
 @api_bp.route('/eventos', methods=['GET'])
 def get_eventos():
     try:
-        # Busca todos os eventos no banco
+        # Busca todos os eventos. 
+        # NOTA: Usamos a propriedade 'inscricoes' (backref) do modelo Evento.
         eventos = Evento.select()
         
         lista_eventos = []
         for e in eventos:
+            # Realiza a contagem de inscritos para cada evento
+            total_inscritos = e.inscricoes.count() 
+
             lista_eventos.append({
                 "id": e.id,
                 "titulo": e.titulo,
@@ -121,10 +126,10 @@ def get_eventos():
                 "local": e.local,
                 "tipo_vagas": e.tipo_vagas,
                 "numero_vagas": e.numero_vagas,
-                # Convertendo data e hora para string para o JSON aceitar
                 "data": str(e.data), 
                 "horario": str(e.horario),
-                "descricao": e.descricao
+                "descricao": e.descricao,
+                "registered_count": total_inscritos # <<< CAMPO NOVO COM A CONTAGEM
             })
             
         return jsonify(lista_eventos), 200
@@ -172,6 +177,73 @@ def delete_evento(id):
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
+
+
+
+# --- ROTA INSCRIÇÃO DE EVENTOS ---
+
+@api_bp.route('/eventos/<int:evento_id>/inscricao', methods=['POST'])
+def create_inscricao(evento_id):
+    data = request.json
+    
+    # 1. Validação dos dados
+    if not data or not data.get('nome') or not data.get('telefone'):
+        return jsonify({"error": "Nome e Telefone são obrigatórios para a inscrição."}), 400
+
+    try:
+        # 2. Verifica se o evento existe
+        evento = Evento.get_or_none(Evento.id == evento_id)
+        if not evento:
+            return jsonify({"error": "Evento não encontrado para inscrição."}), 404
+            
+        # 3. Verifica limite de vagas (se for limitado)
+        if evento.tipo_vagas == 'limitada' and evento.numero_vagas is not None:
+            # Conta as inscrições existentes (IMPORTANTE: Você deve criar a contagem no modelo)
+            total_inscritos = InscricaoEvento.select().where(InscricaoEvento.evento == evento).count()
+            
+            if total_inscritos >= evento.numero_vagas:
+                return jsonify({"error": "As vagas para este evento já estão esgotadas."}), 403
+
+        # 4. Cria a inscrição no banco
+        InscricaoEvento.create(
+            nome=data.get('nome'),
+            numero=data.get('telefone'), # O seu modelo chama o campo de telefone de 'numero'
+            evento=evento # Peewee lida com a Foreign Key
+        )
+        
+        return jsonify({"message": "Inscrição realizada com sucesso!"}), 201
+        
+    except Exception as e:
+        print(f"Erro ao criar inscrição: {e}")
+        return jsonify({"error": "Erro interno ao processar a inscrição."}), 500
+
+
+# --- ROTA LISTAGEM DE INSCRITOS (Para a Secretaria) ---
+
+@api_bp.route('/eventos/<int:evento_id>/inscricoes', methods=['GET'])
+def get_inscricoes_evento(evento_id):
+    try:
+        # Busca todas as inscrições para o evento específico
+        inscricoes = InscricaoEvento.select().where(InscricaoEvento.evento == evento_id)
+        
+        lista_inscricoes = []
+        for i in inscricoes:
+            lista_inscricoes.append({
+                "id": i.id,
+                "nome": i.nome,
+                "telefone": i.numero,
+                # O Peewee pode ter um campo 'data_inscricao' se você o adicionou, 
+                # mas vou usar um padrão se não houver um campo explícito no seu modelo
+                "data_inscricao": i.data_criacao if hasattr(i, 'data_criacao') else "N/A" 
+            })
+            
+        return jsonify(lista_inscricoes), 200
+        
+    except Exception as e:
+        print(f"Erro ao buscar inscrições: {e}")
+        return jsonify({"error": "Erro ao buscar a lista de inscritos."}), 500
+    
     
 
 # --- ROTA AGENDA ---

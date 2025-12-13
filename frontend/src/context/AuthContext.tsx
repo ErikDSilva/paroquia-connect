@@ -4,7 +4,6 @@ interface User {
   id: number;
   nome: string;
   email: string;
-  is_admin: boolean;
 }
 
 interface AuthContextType {
@@ -15,7 +14,7 @@ interface AuthContextType {
   logout: () => void;
 }
 
-const AuthContext = createContext<AuthContextType>({} as AuthContextType);
+export const AuthContext = createContext<AuthContextType>({} as AuthContextType);
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
