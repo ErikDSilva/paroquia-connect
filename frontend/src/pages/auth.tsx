@@ -1,18 +1,16 @@
 import { useState } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { useNavigate } from "react-router-dom";
-import { Header } from "@/components/Header";
+// Componentes importados (mantidos)
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Eye, EyeOff } from "lucide-react"; 
-import "@/static/auth/style.css";
+import "@/static/auth/style.css"; // Estilos
 
 const Auth = () => {
   const { login } = useAuth();
   const navigate = useNavigate();
-  // A importação de 'useToast' não é mais necessária, mas vamos mantê-la como comentário caso precise.
-  // const { toast } = useToast(); 
 
   // Login States
   const [loginEmail, setLoginEmail] = useState("");
@@ -21,12 +19,10 @@ const Auth = () => {
   // Controle de visibilidade da senha
   const [showLoginPass, setShowLoginPass] = useState(false);
 
-  // Estado para feedback visual do Login (sem Toast)
+  // Estado para feedback visual do Login
   const [loginFeedback, setLoginFeedback] = useState<{ type: 'success' | 'error', message: string } | null>(null);
 
-  // REMOVIDOS OS STATES DE CADASTRO E VERIFICAÇÃO
-
-  // REMOVIDA A FUNÇÃO validatePassword E AS FUNÇÕES DE CADASTRO/VERIFICAÇÃO
+  // REMOVIDA A LÓGICA DE CADASTRO E VERIFICAÇÃO
 
   const handleLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -42,15 +38,13 @@ const Auth = () => {
       const data = await res.json();
 
       if (res.ok) {
-        login(data.user);
-        setLoginFeedback({ type: 'success', message: "Login realizado com sucesso! Redirecionando..." });
+        // Assume que qualquer login bem-sucedido é de um administrador
+        login(data.user); 
+        setLoginFeedback({ type: 'success', message: "Login realizado com sucesso! Redirecionando para a administração..." });
 
         setTimeout(() => {
-            if (data.user.is_admin) {
-              navigate("/admin");
-            } else {
-              navigate("/");
-            }
+          // REDIRECIONAMENTO DIRETO PARA A ÁREA ADMINISTRATIVA
+          navigate("/admin"); 
         }, 1000);
 
       } else {
@@ -72,12 +66,10 @@ const Auth = () => {
                 <span className="logo-text">P</span>
               </div>
               <h1 className="title">Bem-vindo</h1>
-              {/* Texto ajustado para refletir apenas o Login */}
-              <p className="subtitle">Acesse sua conta</p>
+              <p className="subtitle">Acesse o painel administrativo</p> {/* Texto ajustado */}
             </div>
 
-            {/* REMOVIDO O COMPONENTE TABS PARA FICAR APENAS COM O FORMULÁRIO DE LOGIN */}
-            
+            {/* O formulário de Login permanece o mesmo */}
             <form className="form-stack" onSubmit={handleLoginSubmit}>
               
               {loginFeedback && (

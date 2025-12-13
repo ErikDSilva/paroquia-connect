@@ -21,11 +21,6 @@ const ProtectedRoute = ({ onlyAdmin = false }: ProtectedRouteProps) => {
         return <Navigate to="/auth" replace />;
     }
 
-    // 2. É rota de Admin mas o usuário não é admin -> Vai para Home
-
-    if (onlyAdmin && !user?.is_admin) {
-        return <Navigate to="/" replace />;
-    }
 
 
 

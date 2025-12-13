@@ -46,6 +46,9 @@ def create_app(config_class=Config):
     from .api.auth_routes import auth_bp
     app.register_blueprint(auth_bp, url_prefix='/api/v1/auth')
 
+    from .api.auth_routes import admin_management_bp 
+    app.register_blueprint(admin_management_bp, url_prefix='/api/v1/admin_management')
+
     # Rota de teste
     @app.route('/health')
     def health_check():
