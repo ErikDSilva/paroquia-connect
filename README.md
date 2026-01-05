@@ -33,7 +33,7 @@ O sistema é dividido nos seguintes módulos principais:
 | **Frontend** | [React, TypeScript] | Interface de usuário moderna e responsiva. |
 | **Backend** | [Flask, Python] | API RESTful para manipulação de dados. |
 | **Banco de Dados** | [MySQL] | Armazenamento seguro de dados paroquiais. |
-| **Estilização** | [Tailwind CSS / Material UI / CSS] | [Opcional: Detalhe o framework de UI.] |
+| **Estilização** | [Tailwind CSS / Shadcn-ui / CSS] | Ferramenta de estilos. |
 
 ## 🚀 Como Executar o Projeto Localmente
 
@@ -43,7 +43,7 @@ Siga os passos abaixo para configurar e rodar o projeto em sua máquina:
 
 Você deve ter o seguinte software instalado:
 
-* `Git`
+* `Git` Ferramenta de controle de versionamento
 * `Node.js` (ou ambiente de execução do Backend)
 * `Mysql` (recomendado para banco de dados local)
 * `Python`
@@ -53,7 +53,7 @@ Você deve ter o seguinte software instalado:
 ```bash
 git clone [https://github.com/ErikDSilva/paroquia-connect.git]
 
-cd [Nome da pasta do projeto]
+cd paroquia-connect
 ```
 
 ### 2. Instalação dependencias Frontend
@@ -63,14 +63,13 @@ cd .\frontend\
 
 npm install
 ```
-
-### 3. Instalação dependencias backend
-
+### Comando para executar o frontend
 ```bash
-cd .\backend\
+npm run dev
 ```
 
-### 3.1 Cria o ambiente virtual
+### 3 Cria o ambiente virtual
+#### Abra um novo terminal
 
 ```bash
 python -m venv venv
@@ -82,28 +81,46 @@ python -m venv venv
 | **Windows (CMD)** | ```venv\Scripts\activate.bat``` |
 | **Windows (PowerShell)** | ```venv\Scripts\Activate.ps1``` |
 
-### apos ativar o ambiente virtual, você vai instalar as dependencias
+### 3.1 Criando o banco de dados
+#### Antes de criar as tabelas do banco de dados é preciso criar um banco de dados, pelo workbanch do mysql usando esse comando
+
+```bash
+CREATE DATABASE  IF NOT EXISTS paroquia;
+```
+
+#### Esté comando para criar o banco de dados
+
+```bash
+cd .\backend\
+
+python -m app.models.create_tables
+```
+
+### Instalação dependencias backend
+
+
+### 3.2 apos ativar o ambiente virtual, você vai instalar as dependencias
 ```bash
 pip install -r .\requirements.txt
 ```
 
+### Comando para execular o backend
+```bash
+flask run
+```
 
-# paroquia-connect-frontend
-Frontend em React para o projeto Paróquia Connect.
+### 📂 Estrutura do Projeto
 
+A estrutura principal do repositório é dividida em frontend e backend:
 
-Instalação do Peewee:
-  pip install flask peewee
-
-  pip install flask pymysql
-
-Instalação do Cors
-
-  pip install flask-cors
-
-Criado a tabela:
-  python -m app.models.create_tables
-
-Instalar requisitos no ambiente do backend
-
-  pip install -r requirements.txt
+* `paroquia-connect/`
+    * `frontend/` (Contém o código React/TypeScript)
+        * `src/components/`
+        * `src/pages/`
+    * `backend/` (Contém o código Flask/Python)
+        * `venv/` (Ambiente virtual Python)
+        * `app/` (Módulos da aplicação Flask)
+            * `models/`
+            * `routes/`
+        * `requirements.txt`
+        * `.env`
