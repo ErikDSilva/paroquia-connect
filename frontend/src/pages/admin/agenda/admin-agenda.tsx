@@ -10,10 +10,12 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { CalendarPlus, Edit, Trash2, Church, Heart, Baby, Users } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/context/AuthContext";
 import "@/static/admin/agenda-evento/style.css"
 
 const AdminAgenda = () => {
   const { toast } = useToast();
+  const { user } = useAuth();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedType, setSelectedType] = useState("all");
   const [events, setEvents] = useState<any[]>([]);
@@ -48,8 +50,10 @@ const AdminAgenda = () => {
         date: item.data,
         time: item.horario,
         location: item.local,
-        description: item.descricao, // Importante trazer a descrição para poder editar
-        participants: 0 
+        description: item.descricao,
+        participants: 0,
+        // 2. Mapear o ID do criador que agora o back-end envia
+        criado_por_id: item.criado_por
       }));
 
       setEvents(eventosFormatados);
@@ -67,28 +71,29 @@ const AdminAgenda = () => {
   const handleSaveEvent = async () => {
     // Validação simples
     if (!formData.titulo || !formData.data) {
-        toast({ variant: "destructive", title: "Atenção", description: "Preencha pelo menos Título e Data." });
-        return;
+      toast({ variant: "destructive", title: "Atenção", description: "Preencha pelo menos Título e Data." });
+      return;
     }
 
     try {
       // Define URL e Método baseado no modo (Edição ou Criação)
-      const url = editingId 
-        ? `http://localhost:5000/api/v1/agenda/${editingId}` 
+      const url = editingId
+        ? `http://localhost:5000/api/v1/agenda/${editingId}`
         : 'http://localhost:5000/api/v1/agenda';
-      
+
       const method = editingId ? 'PUT' : 'POST';
 
       const response = await fetch(url, {
         method: method,
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify(formData)
       });
 
       if (response.ok) {
-        toast({ 
-            title: "Sucesso", 
-            description: editingId ? "Evento atualizado." : "Evento criado." 
+        toast({
+          title: "Sucesso",
+          description: editingId ? "Evento atualizado." : "Evento criado."
         });
         setIsDialogOpen(false);
         resetForm(); // Limpa tudo
@@ -105,17 +110,17 @@ const AdminAgenda = () => {
   // NOVO: Função chamada ao clicar no botão de lápis
   const handleEditClick = (event: any) => {
     setEditingId(event.id); // Marca que estamos editando este ID
-    
+
     // Preenche o formulário com os dados do evento clicado
     setFormData({
-        titulo: event.title,
-        tipo: event.type,
-        data: event.date, // Certifique-se que o formato vindo do back é YYYY-MM-DD
-        local: event.location,
-        horario: event.time,
-        descricao: event.description || ""
+      titulo: event.title,
+      tipo: event.type,
+      data: event.date, // Certifique-se que o formato vindo do back é YYYY-MM-DD
+      local: event.location,
+      horario: event.time,
+      descricao: event.description || ""
     });
-    
+
     setIsDialogOpen(true); // Abre o modal
   };
 
@@ -123,13 +128,13 @@ const AdminAgenda = () => {
   const handleOpenChange = (open: boolean) => {
     setIsDialogOpen(open);
     if (!open) {
-        resetForm(); // Se fechar, limpa o estado de edição para não bugar o "Novo Evento" depois
+      resetForm(); // Se fechar, limpa o estado de edição para não bugar o "Novo Evento" depois
     }
   };
 
   const handleDeleteEvent = async (id: number) => {
     if (!confirm("Tem certeza que deseja excluir este evento?")) return;
-    
+
     try {
       const response = await fetch(`http://localhost:5000/api/v1/agenda/${id}`, {
         method: 'DELETE'
@@ -205,7 +210,7 @@ const AdminAgenda = () => {
                   <DialogTrigger asChild>
                     <Button className="btn-new-event" onClick={resetForm}>
                       <CalendarPlus className="mr-2 icon-sm" />
-                      Novo Evento
+                      Novo Agendamento
                     </Button>
                   </DialogTrigger>
                   <DialogContent className="dialog-content-lg">
@@ -335,21 +340,26 @@ const AdminAgenda = () => {
                       </div>
 
                       <div className="event-actions">
-                        {/* BOTÃO EDITAR AGORA TEM AÇÃO */}
-                        <Button 
-                            variant="ghost" 
-                            size="icon"
-                            onClick={() => handleEditClick(event)}
-                        >
-                          <Edit className="icon-sm" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleDeleteEvent(event.id)}
-                        >
-                          <Trash2 className="icon-sm text-destructive" />
-                        </Button>
+                        {/* 3. Lógica de Permissão */}
+                        {(user?.tipo === 'admin' || event.criado_por_id === user?.id) && (
+                          <>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => handleEditClick(event)}
+                            >
+                              <Edit className="icon-sm" />
+                            </Button>
+
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => handleDeleteEvent(event.id)}
+                            >
+                              <Trash2 className="icon-sm text-destructive" />
+                            </Button>
+                          </>
+                        )}
                       </div>
                     </div>
                   </CardContent>

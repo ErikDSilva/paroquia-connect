@@ -19,10 +19,10 @@ def create_app(config_class=Config):
 
     # Configuração do CORS
     CORS(app, resources={
-        r"/api/*": {
-            "origins": app.config.get('CORS_ORIGINS', '*')
-        }
-    }, supports_credentials=True)
+            r"/api/*": {
+                "origins": ["http://localhost:5173"] 
+            }
+        }, supports_credentials=True)
 
     # 3. INICIAR O MAIL
     mail.init_app(app)

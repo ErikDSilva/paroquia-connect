@@ -50,7 +50,7 @@ export const Header = () => {
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/60">
-      <div className="container flex h-16 items-center justify-between">
+      <div className="container px-6 flex h-16 items-center justify-between">
         
         {/* LOGO */}
         <Link to="/" className="flex items-center gap-3">

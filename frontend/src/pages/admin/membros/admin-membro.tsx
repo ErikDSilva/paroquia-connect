@@ -4,11 +4,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Search, UserPlus, Edit, Trash2, ChevronDown, ChevronUp } from "lucide-react"; 
+import { Search, UserPlus, Edit, Trash2, ChevronDown, ChevronUp } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/context/AuthContext";
 
 // URL base já inclui o prefixo /api/v1/admin_management
-const API_BASE_URL = "http://localhost:5000/api/v1/admin_management"; 
+const API_BASE_URL = "http://localhost:5000/api/v1/admin_management";
 
 interface Admin {
     id: number;
@@ -27,6 +28,9 @@ const AdminMembros = () => {
     const [error, setError] = useState<string | null>(null);
     const [showAddAdminForm, setShowAddAdminForm] = useState(false);
 
+    const { user } = useAuth(); // Obtenha o usuário logado
+    const isAdmin = user?.tipo === 'admin'; // Verificação de nível de acesso
+
     // --- ESTADOS DE CADASTRO (POST) ---
     const [newAdminData, setNewAdminData] = useState({
         name: "",
@@ -37,10 +41,10 @@ const AdminMembros = () => {
 
     // --- ESTADOS DE EDIÇÃO (PUT) ---
     const [editingAdmin, setEditingAdmin] = useState<Admin | null>(null);
-    const [editData, setEditData] = useState({ 
-        name: '', 
-        email: '', 
-        phone: '', 
+    const [editData, setEditData] = useState({
+        name: '',
+        email: '',
+        phone: '',
         password: '' // Senha é opcional na edição
     });
 
@@ -51,14 +55,14 @@ const AdminMembros = () => {
         setError(null);
         try {
             const response = await fetch(`${API_BASE_URL}/admins`);
-            
+
             const result = await response.json();
 
             if (!response.ok) {
                 throw new Error(result.error || `Erro ao carregar administradores: ${response.status}`);
             }
-            
-            setAdmins(result as Admin[]); 
+
+            setAdmins(result as Admin[]);
         } catch (err) {
             console.error("Erro ao buscar admins:", err);
             setError(err instanceof Error ? err.message : "Erro desconhecido ao buscar dados.");
@@ -74,8 +78,8 @@ const AdminMembros = () => {
 
     useEffect(() => {
         fetchAdmins();
-    }, [fetchAdmins]); 
-    
+    }, [fetchAdmins]);
+
     // --- LÓGICA DE CADASTRO ---
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const { name, value } = e.target;
@@ -84,7 +88,7 @@ const AdminMembros = () => {
 
     const handleAddAdmin = async (e: React.FormEvent) => {
         e.preventDefault();
-        
+
         if (!newAdminData.name || !newAdminData.email || !newAdminData.password) {
             toast({
                 title: "Erro de Validação",
@@ -98,6 +102,7 @@ const AdminMembros = () => {
             const response = await fetch(`${API_BASE_URL}/admins`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
                 body: JSON.stringify(newAdminData),
             });
 
@@ -112,7 +117,7 @@ const AdminMembros = () => {
                 description: `O novo administrador ${newAdminData.name} foi adicionado.`,
             });
 
-            await fetchAdmins(); 
+            await fetchAdmins();
             setNewAdminData({ name: "", email: "", phone: "", password: "" });
             setShowAddAdminForm(false);
         } catch (error) {
@@ -124,7 +129,7 @@ const AdminMembros = () => {
             });
         }
     };
-    
+
     // --- LÓGICA DE EDIÇÃO (PUT) ---
     const handleStartEdit = (admin: Admin) => {
         setEditingAdmin(admin);
@@ -162,7 +167,7 @@ const AdminMembros = () => {
 
         // 2. Adiciona a senha apenas se for preenchida
         if (editData.password) {
-            payload.password = editData.password; 
+            payload.password = editData.password;
         }
 
         if (!payload.name || !payload.email) {
@@ -192,8 +197,8 @@ const AdminMembros = () => {
                 description: `Os dados de ${payload.name} foram salvos.`,
             });
 
-            handleCancelEdit(); 
-            await fetchAdmins(); 
+            handleCancelEdit();
+            await fetchAdmins();
         } catch (error) {
             console.error("Erro na atualização:", error);
             toast({
@@ -210,6 +215,7 @@ const AdminMembros = () => {
             try {
                 const response = await fetch(`${API_BASE_URL}/admins/${adminId}`, {
                     method: 'DELETE',
+                    credentials: 'include',
                 });
 
                 const result = await response.json();
@@ -236,7 +242,7 @@ const AdminMembros = () => {
             }
         }
     };
-    
+
     // --- JSX ---
 
     const filteredAdmins = useMemo(() => admins.filter(admin =>
@@ -248,7 +254,7 @@ const AdminMembros = () => {
     return (
         <div className="min-h-screen bg-gradient-to-b from-background to-background/80">
             <HeaderSecretaria />
-            
+
             <main className="container mx-auto px-4 py-8">
                 <div className="mb-8">
                     <h1 className="text-4xl font-bold text-foreground mb-2">Gerenciamento de Administradores</h1>
@@ -256,7 +262,7 @@ const AdminMembros = () => {
                 </div>
 
                 {/* --- Card de Edição de Administrador (NOVO) --- */}
-                {editingAdmin && (
+                {isAdmin && editingAdmin && (
                     <Card className="mb-8 border-primary">
                         <CardHeader className="bg-primary/10">
                             <CardTitle className="flex items-center gap-2">
@@ -308,68 +314,70 @@ const AdminMembros = () => {
                         </CardContent>
                     </Card>
                 )}
-                
-                {/* --- Card de Cadastro de Novo Administrador --- */}
-                <Card className="mb-8">
-                    <CardHeader>
-                        <div className="flex justify-between items-center">
-                            <CardTitle>Adicionar Novo Administrador</CardTitle>
-                            <Button 
-                                variant="outline" 
-                                onClick={() => setShowAddAdminForm(prev => !prev)}
-                                className="gap-2"
-                            >
-                                {showAddAdminForm ? "Ocultar Formulário" : "Novo Admin"}
-                                {showAddAdminForm ? <ChevronUp className="h-4 w-4" /> : <UserPlus className="h-4 w-4" />}
-                            </Button>
-                        </div>
-                        {showAddAdminForm && (
-                            <CardDescription>Preencha os dados do novo administrador. **A senha será o acesso inicial.**</CardDescription>
-                        )}
-                    </CardHeader>
 
-                    {showAddAdminForm && (
-                    <CardContent>
-                        <form onSubmit={handleAddAdmin} className="space-y-4">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <Input
-                            name="name"
-                            placeholder="Nome Completo"
-                            value={newAdminData.name}
-                            onChange={handleInputChange}
-                            required
-                            />
-                            <Input
-                            name="email"
-                            type="email"
-                            placeholder="E-mail"
-                            value={newAdminData.email}
-                            onChange={handleInputChange}
-                            required
-                            />
-                            <Input
-                            name="password"
-                            type="password"
-                            placeholder="Senha Inicial"
-                            value={newAdminData.password}
-                            onChange={handleInputChange}
-                            required
-                            />
-                            <Input
-                            name="phone"
-                            placeholder="Telefone (Opcional)"
-                            value={newAdminData.phone}
-                            onChange={handleInputChange}
-                            />
-                        </div>
-                        <Button type="submit" className="w-full md:w-auto mt-4" disabled={!newAdminData.name || !newAdminData.email || !newAdminData.password || isLoading}>
-                            <UserPlus className="h-4 w-4 mr-2" /> Cadastrar Administrador
-                        </Button>
-                        </form>
-                    </CardContent>
-                    )}
-                </Card>
-                
+                {/* --- Card de Cadastro de Novo Administrador --- */}
+                {isAdmin && (
+                    <Card className="mb-8">
+                        <CardHeader>
+                            <div className="flex justify-between items-center">
+                                <CardTitle>Adicionar Novo Administrador</CardTitle>
+                                <Button
+                                    variant="outline"
+                                    onClick={() => setShowAddAdminForm(prev => !prev)}
+                                    className="gap-2"
+                                >
+                                    {showAddAdminForm ? "Ocultar Formulário" : "Novo Admin"}
+                                    {showAddAdminForm ? <ChevronUp className="h-4 w-4" /> : <UserPlus className="h-4 w-4" />}
+                                </Button>
+                            </div>
+                            {showAddAdminForm && (
+                                <CardDescription>Preencha os dados do novo administrador. **A senha será o acesso inicial.**</CardDescription>
+                            )}
+                        </CardHeader>
+
+                        {showAddAdminForm && (
+                            <CardContent>
+                                <form onSubmit={handleAddAdmin} className="space-y-4">
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <Input
+                                            name="name"
+                                            placeholder="Nome Completo"
+                                            value={newAdminData.name}
+                                            onChange={handleInputChange}
+                                            required
+                                        />
+                                        <Input
+                                            name="email"
+                                            type="email"
+                                            placeholder="E-mail"
+                                            value={newAdminData.email}
+                                            onChange={handleInputChange}
+                                            required
+                                        />
+                                        <Input
+                                            name="password"
+                                            type="password"
+                                            placeholder="Senha Inicial"
+                                            value={newAdminData.password}
+                                            onChange={handleInputChange}
+                                            required
+                                        />
+                                        <Input
+                                            name="phone"
+                                            placeholder="Telefone (Opcional)"
+                                            value={newAdminData.phone}
+                                            onChange={handleInputChange}
+                                        />
+                                    </div>
+                                    <Button type="submit" className="w-full md:w-auto mt-4" disabled={!newAdminData.name || !newAdminData.email || !newAdminData.password || isLoading}>
+                                        <UserPlus className="h-4 w-4 mr-2" /> Cadastrar Administrador
+                                    </Button>
+                                </form>
+                            </CardContent>
+                        )}
+                    </Card>
+                )}
+
                 {/* --- Card da Lista de Administradores --- */}
                 <Card>
                     <CardHeader>
@@ -378,7 +386,7 @@ const AdminMembros = () => {
                                 <CardTitle>Lista de Administradores</CardTitle>
                                 <CardDescription>Total de {admins.length} usuários cadastrados</CardDescription>
                             </div>
-                            
+
                             <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
                                 <div className="relative flex-1 md:w-64">
                                     <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -421,28 +429,30 @@ const AdminMembros = () => {
                                                     <TableCell>{admin.email}</TableCell>
                                                     <TableCell>{admin.phone}</TableCell>
                                                     <TableCell>{admin.joined}</TableCell>
-                                                    <TableCell className="text-right">
-                                                        <div className="flex justify-end gap-2">
-                                                            <Button 
-                                                                variant="ghost" 
-                                                                size="icon" 
-                                                                title="Editar Admin"
-                                                                onClick={() => handleStartEdit(admin)}
-                                                                disabled={editingAdmin !== null}
-                                                            >
-                                                                <Edit className="h-4 w-4" />
-                                                            </Button>
-                                                            <Button
-                                                                variant="ghost"
-                                                                size="icon"
-                                                                onClick={() => handleDeleteAdmin(admin.id, admin.name)}
-                                                                title="Excluir Administrador"
-                                                                disabled={editingAdmin !== null}
-                                                            >
-                                                                <Trash2 className="h-4 w-4 text-destructive" />
-                                                            </Button>
-                                                        </div>
-                                                    </TableCell>
+                                                    {isAdmin && (
+                                                        <TableCell className="text-right">
+                                                            <div className="flex justify-end gap-2">
+                                                                <Button
+                                                                    variant="ghost"
+                                                                    size="icon"
+                                                                    title="Editar Admin"
+                                                                    onClick={() => handleStartEdit(admin)}
+                                                                    disabled={editingAdmin !== null}
+                                                                >
+                                                                    <Edit className="h-4 w-4" />
+                                                                </Button>
+                                                                <Button
+                                                                    variant="ghost"
+                                                                    size="icon"
+                                                                    onClick={() => handleDeleteAdmin(admin.id, admin.name)}
+                                                                    title="Excluir Administrador"
+                                                                    disabled={editingAdmin !== null}
+                                                                >
+                                                                    <Trash2 className="h-4 w-4 text-destructive" />
+                                                                </Button>
+                                                            </div>
+                                                        </TableCell>
+                                                    )}
                                                 </TableRow>
                                             ))
                                         ) : (

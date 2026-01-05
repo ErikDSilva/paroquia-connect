@@ -4,9 +4,9 @@ from ..models.eventos import Evento;
 from ..models.inscricao_evento import InscricaoEvento;
 from ..models.agenda import Agenda;
 from ..models.avisos import Aviso;
-from ..models.horario import Horario;
 from flask_mail import Message
 from ..extensions import mail
+from flask_login import login_required, current_user
 
 # O prefixo /api/v1 já foi definido no create_app
 # Rota: http://localhost:5000/api/v1/data
@@ -14,71 +14,76 @@ from ..extensions import mail
 
 # --- ROTA DASHBOARD (NOVA) ---
 @api_bp.route('/dashboard', methods=['GET'])
+@login_required # Importante: Identifica quem está logado
 def get_dashboard_data():
     try:
-        # 1. Contagens para os Cards
-        total_eventos = Evento.select().count()
-        total_avisos = Aviso.select().count()
-        total_agenda = Agenda.select().count()
-        total_horarios = Horario.select().count()
-
-        # 2. Atividade Recente
-        # Buscamos os últimos 3 de cada tabela para misturar na timeline
-        # Usamos o ID descrescente como proxy para "mais recente"
+        user = current_user
         
+        # Define o filtro base: Admin vê tudo, Gestor vê apenas o dele
+        if user.tipo == 'admin':
+            # Consultas globais
+            q_eventos = Evento.select()
+            q_avisos = Aviso.select()
+            q_agenda = Agenda.select()
+        else:
+            # Consultas filtradas por dono
+            q_eventos = Evento.select().where(Evento.criado_por == user.idusuario)
+            q_avisos = Aviso.select().where(Aviso.criado_por == user.idusuario)
+            q_agenda = Agenda.select().where(Agenda.criado_por == user.idusuario)
+
+        # 1. Contagens para os Cards
+        stats = {
+            "eventos": q_eventos.count(),
+            "avisos": q_avisos.count(),
+            "agenda": q_agenda.count(),
+            "horarios": Agenda.select().where(Agenda.is_public == True).count() # Horários públicos todos veem
+        }
+
+        # 2. Atividade Recente filtrada
         recent_activity = []
 
-        # Eventos recentes
-        last_eventos = Evento.select().order_by(Evento.id.desc()).limit(3)
+        # Eventos recentes do usuário (ou todos se admin)
+        last_eventos = q_eventos.order_by(Evento.id.desc()).limit(3)
         for e in last_eventos:
             recent_activity.append({
-                "action": "Novo Evento Criado",
+                "action": "Evento Registrado",
                 "item": e.titulo,
                 "type": "evento",
-                "id": e.id,
-                "sort_id": e.id * 1000 # Peso para ordenação misturada simples
+                "sort_id": e.id * 1000
             })
 
         # Avisos recentes
-        last_avisos = Aviso.select().order_by(Aviso.id.desc()).limit(3)
+        last_avisos = q_avisos.order_by(Aviso.id.desc()).limit(3)
         for a in last_avisos:
             recent_activity.append({
                 "action": "Aviso Publicado",
                 "item": a.titulo,
                 "type": "aviso",
-                "id": a.id,
                 "sort_id": a.id * 1000
             })
 
-        # Agendamentos recentes (Substitui "Membros")
-        last_agenda = Agenda.select().order_by(Agenda.id.desc()).limit(3)
+        # Agendas recentes
+        last_agenda = q_agenda.order_by(Agenda.id.desc()).limit(3)
         for ag in last_agenda:
             recent_activity.append({
                 "action": "Novo Agendamento",
-                "item": f"{ag.titulo} - {ag.data}",
+                "item": f"{ag.titulo}",
                 "type": "agenda",
-                "id": ag.id,
                 "sort_id": ag.id * 1000
             })
 
-        # Ordena a lista misturada e pega os 5 últimos
-        # Nota: Num sistema real, usaríamos um campo 'created_at' para ordenar precisamente
         recent_activity.sort(key=lambda x: x['sort_id'], reverse=True)
-        final_activity = recent_activity[:5]
-
+        
         return jsonify({
-            "stats": {
-                "eventos": total_eventos,
-                "avisos": total_avisos,
-                "agenda": total_agenda,
-                "horarios": total_horarios
-            },
-            "activity": final_activity
+            "stats": stats,
+            "activity": recent_activity[:5],
+            "user_role": user.tipo # Informativo para o front
         }), 200
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
-
+    
+    
 # --- ROTA EVENTOS ---
 
 @api_bp.route('/eventos', methods=['POST'])
@@ -96,7 +101,9 @@ def create_evento():
             numero_vagas=int(data.get('numero_vagas')) if data.get('numero_vagas') else None,
             data=data.get('data'),
             horario=data.get('horario'),
-            descricao=data.get('descricao')
+            descricao=data.get('descricao'),
+            criado_por=current_user.idusuario
+            
         )
         
         return jsonify({
@@ -129,7 +136,8 @@ def get_eventos():
                 "data": str(e.data), 
                 "horario": str(e.horario),
                 "descricao": e.descricao,
-                "registered_count": total_inscritos # <<< CAMPO NOVO COM A CONTAGEM
+                "registered_count": total_inscritos, # <<< CAMPO NOVO COM A CONTAGEM
+                "criado_por": e.criado_por.idusuario if e.criado_por else None
             })
             
         return jsonify(lista_eventos), 200
@@ -145,6 +153,10 @@ def update_evento(id):
         evento = Evento.get_or_none(Evento.id == id)
         if not evento:
             return jsonify({"error": "Evento não encontrado"}), 404
+        
+        # Lógica de Permissão
+        if current_user.tipo != 'admin' and evento.criado_por.idusuario != current_user.idusuario:
+            return jsonify({"error": "Sem permissão"}), 403
 
         # Atualiza os campos
         evento.titulo = data.get('titulo')
@@ -167,14 +179,16 @@ def update_evento(id):
 @api_bp.route('/eventos/<int:id>', methods=['DELETE'])
 def delete_evento(id):
     try:
-        query = Evento.delete().where(Evento.id == id)
-        rows_deleted = query.execute()
-        
-        if rows_deleted == 0:
-            return jsonify({"error": "Evento não encontrado"}), 404
-            
-        return jsonify({"message": "Evento deletado com sucesso!"}), 200
+        evento = Evento.get_or_none(Evento.id == id)
+        if not evento:
+            return jsonify({"error": "Não encontrado"}), 404
 
+        # Lógica de Permissão
+        if current_user.tipo != 'admin' and evento.criado_por.idusuario != current_user.idusuario:
+            return jsonify({"error": "Sem permissão"}), 403
+
+        evento.delete_instance()
+        return jsonify({"message": "Excluído"}), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
@@ -264,7 +278,9 @@ def get_agenda():
                 # Convertendo Date e Time para string (ISO format) para o JSON
                 "data": str(a.data), 
                 "horario": str(a.horario),
-                "descricao": a.descricao
+
+                "descricao": a.descricao,
+                "criado_por": a.criado_por.idusuario if a.criado_por else None
             })
             
         return jsonify(lista_agenda), 200
@@ -274,6 +290,7 @@ def get_agenda():
 
 # 2. CRIAR NOVO (POST)
 @api_bp.route('/agenda', methods=['POST'])
+@login_required
 def create_agenda():
     data = request.json
     
@@ -288,7 +305,8 @@ def create_agenda():
             data=data.get('data'),       # Espera string 'YYYY-MM-DD'
             local=data.get('local'),
             horario=data.get('horario'), # Espera string 'HH:MM'
-            descricao=data.get('descricao')
+            descricao=data.get('descricao'),
+            criado_por=current_user.idusuario
         )
         
         return jsonify({
@@ -305,13 +323,21 @@ def create_agenda():
 @api_bp.route('/agenda/<int:id>', methods=['DELETE'])
 def delete_agenda(id):
     try:
-        query = Agenda.delete().where(Agenda.id == id)
-        rows_deleted = query.execute()
-        
-        if rows_deleted == 0:
+        agenda_item = Agenda.get_or_none(Agenda.id == id)
+
+        if not agenda_item:
             return jsonify({"error": "Item não encontrado"}), 404
-            
-        return jsonify({"message": "Removido da agenda com sucesso!"}), 200
+
+        # --- LÓGICA DE PERMISSÃO ---
+        is_admin = current_user.tipo == 'admin'
+        is_owner = agenda_item.criado_por.idusuario == current_user.idusuario
+
+        if not (is_admin or is_owner):
+            return jsonify({"error": "Você não tem permissão para excluir este registro"}), 403
+        # ---------------------------
+
+        agenda_item.delete_instance()
+        return jsonify({"message": "Removido com sucesso!"}), 200
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
@@ -335,6 +361,7 @@ def update_agenda(id):
         agenda_item.data = data.get('data')
         agenda_item.horario = data.get('horario')
         agenda_item.descricao = data.get('descricao')
+        
         
         agenda_item.save() # Salva no banco de dados
         
@@ -363,7 +390,8 @@ def get_avisos():
                 "url": a.url if a.url else "", # Garante string vazia se for None
                 "descricao": a.descricao,
                 # Converte objeto date para string (YYYY-MM-DD) para o React não quebrar
-                "data": str(a.data) 
+                "data": str(a.data),
+                "criado_por_id": a.criado_por.idusuario if a.criado_por else None
             })
             
         return jsonify(lista_avisos), 200
@@ -374,6 +402,7 @@ def get_avisos():
 # 2. CRIAR (POST)
 # O React envia: { titulo, categoria, descricao, data, url }
 @api_bp.route('/avisos', methods=['POST'])
+@login_required
 def create_aviso():
     data = request.json
     
@@ -387,7 +416,8 @@ def create_aviso():
             categoria=data.get('categoria'),
             url=data.get('url'),
             descricao=data.get('descricao'),
-            data=data.get('data') # O Peewee converte string 'YYYY-MM-DD' automaticamente para DateField
+            data=data.get('data'), # O Peewee converte string 'YYYY-MM-DD' automaticamente para DateField
+            criado_por=current_user.idusuario
         )
         
         return jsonify({
@@ -403,6 +433,7 @@ def create_aviso():
 # Nota: Seu frontend atual tem o botão de editar, mas ainda não implementou a lógica de chamar essa rota.
 # Já deixo pronta para quando você fizer o modal de edição.
 @api_bp.route('/avisos/<int:id>', methods=['PUT'])
+@login_required
 def update_aviso(id):
     data = request.json
     try:
@@ -410,6 +441,10 @@ def update_aviso(id):
         
         if not aviso:
             return jsonify({"error": "Aviso não encontrado"}), 404
+        
+        # Regra: Admin tudo, Gestor apenas o dele
+        if current_user.tipo != 'admin' and aviso.criado_por.idusuario != current_user.idusuario:
+            return jsonify({"error": "Sem permissão"}), 403
 
         # Atualiza apenas os campos enviados
         aviso.titulo = data.get('titulo', aviso.titulo)
@@ -427,15 +462,17 @@ def update_aviso(id):
 # 4. DELETAR (DELETE)
 # O React chama: /api/v1/avisos/{id}
 @api_bp.route('/avisos/<int:id>', methods=['DELETE'])
+@login_required
 def delete_aviso(id):
     try:
-        query = Aviso.delete().where(Aviso.id == id)
-        rows_deleted = query.execute()
-        
-        if rows_deleted == 0:
-             return jsonify({"error": "Aviso não encontrado"}), 404
-             
-        return jsonify({"message": "Aviso deletado com sucesso!"}), 200
+        aviso = Aviso.get_or_none(Aviso.id == id)
+        if not aviso: return jsonify({"error": "Não encontrado"}), 404
+
+        if current_user.tipo != 'admin' and aviso.criado_por.idusuario != current_user.idusuario:
+            return jsonify({"error": "Sem permissão"}), 403
+
+        aviso.delete_instance()
+        return jsonify({"message": "Aviso deletado!"}), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 500
     
@@ -445,34 +482,39 @@ def delete_aviso(id):
 
 # 1. LISTAR (GET)
 @api_bp.route('/horarios', methods=['GET'])
-def get_horarios():
+def get_horarios_publicos():
     try:
-        horarios = Horario.select()
+        # Busca apenas os itens da agenda que são públicos
+        agendas = Agenda.select().where(Agenda.is_public == True).order_by(Agenda.horario.asc())
+        
         lista = []
-        for h in horarios:
+        for a in agendas:
             lista.append({
-                "id": h.id,
-                "dia": h.dia_semana,      
-                "titulo": h.titulo,        # Agora usa 'titulo' para alinhar com o front
-                "horario": str(h.horario), 
-                "local": h.local
+                "id": a.id,
+                "dia": a.dia_semana, 
+                "titulo": a.titulo,
+                "horario": str(a.horario),
+                "local": a.local
             })
         return jsonify(lista), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-# 2. CRIAR (POST)
 @api_bp.route('/horarios', methods=['POST'])
-def create_horario():
+@login_required
+def create_horario_publico():
     data = request.json
     try:
-        novo_horario = Horario.create(
+        # Ao criar pela tela de horários, is_public é sempre True
+        nova_agenda = Agenda.create(
+            titulo=data.get('titulo'),
             dia_semana=data.get('dia'),
-            titulo=data.get('titulo'),     # Recebe 'titulo' do input livre
             horario=data.get('horario'),
-            local=data.get('local')
+            local=data.get('local'),
+            is_public=True,
+            criado_por=current_user.idusuario
         )
-        return jsonify({"message": "Horário criado!", "id": novo_horario.id}), 201
+        return jsonify({"message": "Horário público criado!", "id": nova_agenda.id}), 201
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
@@ -481,7 +523,7 @@ def create_horario():
 def update_horario(id):
     data = request.json
     try:
-        horario = Horario.get_or_none(Horario.id == id)
+        horario = Agenda.get_or_none(Agenda.id == id)
         if not horario:
             return jsonify({"error": "Horário não encontrado"}), 404
 
@@ -499,7 +541,7 @@ def update_horario(id):
 @api_bp.route('/horarios/<int:id>', methods=['DELETE'])
 def delete_horario(id):
     try:
-        query = Horario.delete().where(Horario.id == id)
+        query = Agenda.delete().where(Agenda.id == id)
         rows = query.execute()
         if rows == 0:
             return jsonify({"error": "Horário não encontrado"}), 404
