@@ -10,6 +10,8 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Plus, Pencil, Trash2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
+import { useAuth } from "@/context/AuthContext";
+
 import "@/static/admin/horarios/style.css";
 
 // Interface alinhada com o Banco de Dados (titulo em vez de tipo)
@@ -36,7 +38,10 @@ const AdminHorarios = () => {
   const [horarios, setHorarios] = useState<Horario[]>([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingHorario, setEditingHorario] = useState<Horario | null>(null);
-  
+
+  const { user } = useAuth(); // Obtenha o usuário logado
+  const isAdmin = user?.tipo === 'admin'; // Verificação de nível de acesso
+
   const [formData, setFormData] = useState({
     dia: "",
     titulo: "", // Campo livre para o nome da atividade
@@ -68,43 +73,47 @@ const AdminHorarios = () => {
   // 2. SALVAR (POST ou PUT)
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     // Validação
     if (!formData.dia || !formData.titulo || !formData.horario || !formData.local) {
-        toast({ title: "Erro", description: "Preencha todos os campos.", variant: "destructive" });
-        return;
+      toast({ title: "Erro", description: "Preencha todos os campos.", variant: "destructive" });
+      return;
     }
 
     try {
-        const isEditing = editingHorario !== null;
-        const url = isEditing 
-            ? `http://localhost:5000/api/v1/horarios/${editingHorario.id}`
-            : "http://localhost:5000/api/v1/horarios";
-        
-        const method = isEditing ? "PUT" : "POST";
+      const isEditing = editingHorario !== null;
+      const url = isEditing
+        ? `http://localhost:5000/api/v1/horarios/${editingHorario.id}`
+        : "http://localhost:5000/api/v1/horarios";
 
-        const response = await fetch(url, {
-            method: method,
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(formData)
+      const method = isEditing ? "PUT" : "POST";
+
+      const response = await fetch(url, {
+        method: method,
+        headers: { "Content-Type": "application/json" },
+        credentials: 'include',
+        body: JSON.stringify({
+          ...formData,
+          is_public: true, // Garante que seja público
+        })
+      });
+
+      if (response.ok) {
+        toast({
+          title: isEditing ? "Horário atualizado" : "Horário adicionado",
+          description: "Operação realizada com sucesso."
         });
-
-        if (response.ok) {
-            toast({ 
-                title: isEditing ? "Horário atualizado" : "Horário adicionado",
-                description: "Operação realizada com sucesso."
-            });
-            setIsDialogOpen(false);
-            resetForm();
-            fetchHorarios();
-        } else {
-            const errorData = await response.json();
-            toast({ title: "Erro", description: errorData.error || "Falha ao salvar.", variant: "destructive" });
-        }
+        setIsDialogOpen(false);
+        resetForm();
+        fetchHorarios();
+      } else {
+        const errorData = await response.json();
+        toast({ title: "Erro", description: errorData.error || "Falha ao salvar.", variant: "destructive" });
+      }
 
     } catch (error) {
-        console.error(error);
-        toast({ title: "Erro", description: "Erro de conexão.", variant: "destructive" });
+      console.error(error);
+      toast({ title: "Erro", description: "Erro de conexão.", variant: "destructive" });
     }
   };
 
@@ -123,22 +132,23 @@ const AdminHorarios = () => {
 
   // 3. DELETAR (DELETE)
   const handleDelete = async (id: number) => {
-    if(!confirm("Deseja realmente excluir este horário?")) return;
+    if (!confirm("Deseja realmente excluir este horário?")) return;
 
     try {
-        const response = await fetch(`http://localhost:5000/api/v1/horarios/${id}`, {
-            method: "DELETE"
-        });
+      const response = await fetch(`http://localhost:5000/api/v1/horarios/${id}`, {
+        credentials: 'include',
+        method: "DELETE"
+      });
 
-        if (response.ok) {
-            toast({ title: "Horário excluído", description: "O horário foi removido." });
-            fetchHorarios();
-        } else {
-            toast({ title: "Erro", description: "Falha ao excluir.", variant: "destructive" });
-        }
+      if (response.ok) {
+        toast({ title: "Horário excluído", description: "O horário foi removido." });
+        fetchHorarios();
+      } else {
+        toast({ title: "Erro", description: "Falha ao excluir.", variant: "destructive" });
+      }
     } catch (error) {
-        console.error(error);
-        toast({ title: "Erro", description: "Erro de conexão.", variant: "destructive" });
+      console.error(error);
+      toast({ title: "Erro", description: "Erro de conexão.", variant: "destructive" });
     }
   };
 
@@ -166,7 +176,7 @@ const AdminHorarios = () => {
   return (
     <div className="pageWrapper">
       <HeaderSecretaria />
-      
+
       <main className="mainContainer">
         <div className="contentWrapper">
           <div className="pageHeader">
@@ -176,95 +186,96 @@ const AdminHorarios = () => {
                 Cadastre e organize os horários das atividades semanais da paróquia
               </p>
             </div>
-            
-            <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-              <DialogTrigger asChild>
-                <Button onClick={resetForm}>
-                  <Plus className="iconWithText" />
-                  Novo Horário
-                </Button>
-              </DialogTrigger>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>
-                    {editingHorario ? "Editar Horário" : "Novo Horário"}
-                  </DialogTitle>
-                  <DialogDescription>
-                    Preencha os dados do horário da atividade
-                  </DialogDescription>
-                </DialogHeader>
-                
-                <form onSubmit={handleSave}>
-                  <div className="formContainer">
-                    <div className="formGroup">
-                      <Label htmlFor="dia">Dia da Semana</Label>
-                      <Select
-                        value={formData.dia}
-                        onValueChange={(value) => setFormData({ ...formData, dia: value })}
-                        required
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Selecione o dia" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {diasSemana.map(dia => (
-                            <SelectItem key={dia} value={dia}>{dia}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+            {isAdmin && (
+              <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button onClick={resetForm}>
+                    <Plus className="iconWithText" />
+                    Novo Horário
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>
+                      {editingHorario ? "Editar Horário" : "Novo Horário"}
+                    </DialogTitle>
+                    <DialogDescription>
+                      Preencha os dados do horário da atividade
+                    </DialogDescription>
+                  </DialogHeader>
+
+                  <form onSubmit={handleSave}>
+                    <div className="formContainer">
+                      <div className="formGroup">
+                        <Label htmlFor="dia">Dia da Semana</Label>
+                        <Select
+                          value={formData.dia}
+                          onValueChange={(value) => setFormData({ ...formData, dia: value })}
+                          required
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Selecione o dia" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {diasSemana.map(dia => (
+                              <SelectItem key={dia} value={dia}>{dia}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      <div className="formGroup">
+                        <Label htmlFor="titulo">Nome da Atividade</Label>
+                        <Input
+                          id="titulo"
+                          value={formData.titulo}
+                          onChange={(e) => setFormData({ ...formData, titulo: e.target.value })}
+                          placeholder="Ex: Missa, Terço, Grupo de Oração..."
+                          required
+                        />
+                      </div>
+
+                      <div className="formGroup">
+                        <Label htmlFor="horario">Horário</Label>
+                        <Input
+                          id="horario"
+                          type="time"
+                          value={formData.horario}
+                          onChange={(e) => setFormData({ ...formData, horario: e.target.value })}
+                          required
+                        />
+                      </div>
+
+                      <div className="formGroup">
+                        <Label htmlFor="local">Local</Label>
+                        <Input
+                          id="local"
+                          value={formData.local}
+                          onChange={(e) => setFormData({ ...formData, local: e.target.value })}
+                          placeholder="Ex: Igreja Matriz"
+                          required
+                        />
+                      </div>
                     </div>
 
-                    <div className="formGroup">
-                      <Label htmlFor="titulo">Nome da Atividade</Label>
-                      <Input
-                        id="titulo"
-                        value={formData.titulo}
-                        onChange={(e) => setFormData({ ...formData, titulo: e.target.value })}
-                        placeholder="Ex: Missa, Terço, Grupo de Oração..."
-                        required
-                      />
-                    </div>
-
-                    <div className="formGroup">
-                      <Label htmlFor="horario">Horário</Label>
-                      <Input
-                        id="horario"
-                        type="time"
-                        value={formData.horario}
-                        onChange={(e) => setFormData({ ...formData, horario: e.target.value })}
-                        required
-                      />
-                    </div>
-
-                    <div className="formGroup">
-                      <Label htmlFor="local">Local</Label>
-                      <Input
-                        id="local"
-                        value={formData.local}
-                        onChange={(e) => setFormData({ ...formData, local: e.target.value })}
-                        placeholder="Ex: Igreja Matriz"
-                        required
-                      />
-                    </div>
-                  </div>
-
-                  <DialogFooter>
-                    <Button type="button" variant="outline" onClick={handleDialogClose}>
-                      Cancelar
-                    </Button>
-                    <Button type="submit">
-                      {editingHorario ? "Salvar Alterações" : "Adicionar"}
-                    </Button>
-                  </DialogFooter>
-                </form>
-              </DialogContent>
-            </Dialog>
+                    <DialogFooter>
+                      <Button type="button" variant="outline" onClick={handleDialogClose}>
+                        Cancelar
+                      </Button>
+                      <Button type="submit">
+                        {editingHorario ? "Salvar Alterações" : "Adicionar"}
+                      </Button>
+                    </DialogFooter>
+                  </form>
+                </DialogContent>
+              </Dialog>
+            )}
           </div>
 
           <div className="cardsList">
             {diasSemana.map(dia => {
               const horariosDoDia = getHorariosPorDia(dia);
-              
+
               return (
                 <Card key={dia}>
                   <CardHeader>
@@ -281,7 +292,7 @@ const AdminHorarios = () => {
                             <TableHead>Horário</TableHead>
                             <TableHead>Atividade</TableHead>
                             <TableHead>Local</TableHead>
-                            <TableHead className="cellActions">Ações</TableHead>
+                            {isAdmin && <TableHead className="cellActions">Ações</TableHead>}
                           </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -292,24 +303,26 @@ const AdminHorarios = () => {
                               </TableCell>
                               <TableCell>{horario.titulo}</TableCell>
                               <TableCell>{horario.local}</TableCell>
-                              <TableCell className="cellActions">
-                                <div className="actionButtons">
-                                  <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    onClick={() => handleEdit(horario)}
-                                  >
-                                    <Pencil className="icon" />
-                                  </Button>
-                                  <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    onClick={() => handleDelete(horario.id)}
-                                  >
-                                    <Trash2 className="deleteIcon" />
-                                  </Button>
-                                </div>
-                              </TableCell>
+                              {isAdmin &&
+                                <TableCell className="cellActions">
+                                  <div className="actionButtons">
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      onClick={() => handleEdit(horario)}
+                                    >
+                                      <Pencil className="icon" />
+                                    </Button>
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      onClick={() => handleDelete(horario.id)}
+                                    >
+                                      <Trash2 className="deleteIcon" />
+                                    </Button>
+                                  </div>
+                                </TableCell>
+                              }
                             </TableRow>
                           ))}
                         </TableBody>

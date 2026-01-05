@@ -4,6 +4,7 @@ interface User {
   id: number;
   nome: string;
   email: string;
+  tipo: 'admin' | 'gestor';
 }
 
 interface AuthContextType {

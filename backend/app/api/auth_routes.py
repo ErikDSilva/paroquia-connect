@@ -75,6 +75,7 @@ def get_current_user():
                 "id": current_user.idusuario,
                 "nome": current_user.nome,
                 "email": current_user.email,
+                "tipo": current_user.tipo,
             }
         })
     else:
@@ -88,7 +89,9 @@ def admin_required(f):
     @wraps(f)
     @login_required
     def decorated_function(*args, **kwargs):
-        # Implemente a lógica de verificação de permissão aqui
+        # Verifica se o tipo do usuário logado é 'admin'
+        if current_user.tipo != 'admin':
+            return jsonify({"error": "Acesso negado. Apenas administradores podem realizar esta ação."}), 403
         return f(*args, **kwargs)
     return decorated_function
 
@@ -114,6 +117,7 @@ def list_admins():
         return jsonify({"error": str(e)}), 500
 
 @admin_management_bp.route('/admins', methods=['POST'])
+@admin_required
 def create_admin():
     data = request.json
     nome = data.get('name')
@@ -139,6 +143,7 @@ def create_admin():
         return jsonify({"error": f"Erro ao criar administrador: {str(e)}"}), 500
 
 @admin_management_bp.route('/admins/<int:admin_id>', methods=['DELETE'])
+@admin_required
 def delete_admin(admin_id):
     try:
         admin_to_delete = Usuario.get_by_id(admin_id)
@@ -154,7 +159,7 @@ def delete_admin(admin_id):
         return jsonify({"error": f"Erro ao excluir administrador: {str(e)}"}), 500
     
 @admin_management_bp.route('/admins/<int:admin_id>', methods=['PUT'])
-# @admin_required
+@admin_required
 def update_admin(admin_id):
     data = request.json
     

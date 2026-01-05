@@ -16,6 +16,9 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 
 import { CalendarPlus, Edit, Trash2, BookOpen, Sparkles, PartyPopper, HandHeart, ClipboardList, Users } from "lucide-react"; // Adicionando Users icon
 import { useToast } from "@/hooks/use-toast";
+
+import { useAuth } from "@/context/AuthContext";
+
 import "@/static/admin/agenda-evento/style.css"
 
 // --- NOVOS TYPES ---
@@ -31,6 +34,7 @@ type Evento = {
   vacancy: number;
   registered: number;
   description: string;
+  criado_por_id: number | null;
 };
 
 // NOVO TYPE: Estrutura para os dados do inscrito
@@ -43,33 +47,34 @@ type Inscricao = {
 
 // FUNÇÃO UTILITÁRIA PARA VERIFICAR SE O EVENTO ESTÁ NO PASSADO
 const isEventInPast = (event: Evento): boolean => {
-    // Cria uma string de data/hora no formato ISO 8601 (YYYY-MM-DDTTHH:MM)
-    const eventDateTimeString = `${event.date}T${event.time}`;
-    const eventDateTime = new Date(eventDateTimeString);
+  // Cria uma string de data/hora no formato ISO 8601 (YYYY-MM-DDTTHH:MM)
+  const eventDateTimeString = `${event.date}T${event.time}`;
+  const eventDateTime = new Date(eventDateTimeString);
 
-    // Obtém a data/hora atual
-    const now = new Date();
+  // Obtém a data/hora atual
+  const now = new Date();
 
-    // Compara se a data do evento é anterior ou igual à data/hora atual
-    return eventDateTime <= now;
+  // Compara se a data do evento é anterior ou igual à data/hora atual
+  return eventDateTime <= now;
 };
 
 const isFormDateInPast = (formData: any): boolean => {
-    if (!formData.data || !formData.horario) return false;
+  if (!formData.data || !formData.horario) return false;
 
-    // Combina a data (YYYY-MM-DD) e o horário (HH:MM) para criar um objeto Date
-    const eventDateTimeString = `${formData.data}T${formData.horario}:00`; // Adiciona segundos :00
-    const eventDateTime = new Date(eventDateTimeString);
+  // Combina a data (YYYY-MM-DD) e o horário (HH:MM) para criar um objeto Date
+  const eventDateTimeString = `${formData.data}T${formData.horario}:00`; // Adiciona segundos :00
+  const eventDateTime = new Date(eventDateTimeString);
 
-    // Obtém o momento atual para comparação.
-    const now = new Date();
-    
-    // Compara se a data/hora do evento é estritamente anterior à data/hora atual.
-    return eventDateTime < now; 
+  // Obtém o momento atual para comparação.
+  const now = new Date();
+
+  // Compara se a data/hora do evento é estritamente anterior à data/hora atual.
+  return eventDateTime < now;
 };
 
 const Eventos = () => {
   const { toast } = useToast();
+  const { user } = useAuth();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedType, setSelectedType] = useState("all");
   const [editingId, setEditingId] = useState<number | null>(null);
@@ -155,7 +160,7 @@ const Eventos = () => {
 
     try {
       // **ASSUME** que você tem uma rota no backend (ex: http://localhost:5000/api/v1/eventos/1/inscricoes)
-      const response = await fetch(`http://localhost:5000/api/v1/eventos/${eventId}/inscricoes`); 
+      const response = await fetch(`http://localhost:5000/api/v1/eventos/${eventId}/inscricoes`);
 
       if (response.ok) {
         const data: Inscricao[] = await response.json();
@@ -188,48 +193,49 @@ const Eventos = () => {
 
   const handleSaveEvent = async () => {
     try {
-        // VALIDAÇÃO DE DATA
-        if (isFormDateInPast(formData)) {
-            toast({
-              variant: "destructive",
-              title: "Erro de Data",
-              description: "Não é possível criar ou editar um evento para uma data passada."
-            });
-            return; // Interrompe a execução se a data for inválida
-        }
-
-        // Define a URL e o Método baseado se estamos editando ou criando
-        const url = editingId
-            ? `http://localhost:5000/api/v1/eventos/${editingId}`
-            : 'http://localhost:5000/api/v1/eventos';
-
-        const method = editingId ? 'PUT' : 'POST';
-
-        const response = await fetch(url, {
-            method: method,
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(formData),
-        });
-
-        if (response.ok) {
-            toast({
-                title: "Sucesso!",
-                description: editingId ? "Evento atualizado com sucesso." : "Evento criado com sucesso."
-            });
-
-            fetchEventos(); // Atualiza a lista
-            resetForm(); // Limpa e fecha
-        } else {
-            throw new Error('Erro ao salvar');
-        }
-    } catch (error) {
+      // VALIDAÇÃO DE DATA
+      if (isFormDateInPast(formData)) {
         toast({
-            variant: "destructive",
-            title: "Erro",
-            description: "Não foi possível salvar o evento."
+          variant: "destructive",
+          title: "Erro de Data",
+          description: "Não é possível criar ou editar um evento para uma data passada."
         });
+        return; // Interrompe a execução se a data for inválida
+      }
+
+      // Define a URL e o Método baseado se estamos editando ou criando
+      const url = editingId
+        ? `http://localhost:5000/api/v1/eventos/${editingId}`
+        : 'http://localhost:5000/api/v1/eventos';
+
+      const method = editingId ? 'PUT' : 'POST';
+
+      const response = await fetch(url, {
+        method: method,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify(formData),
+      });
+
+      if (response.ok) {
+        toast({
+          title: "Sucesso!",
+          description: editingId ? "Evento atualizado com sucesso." : "Evento criado com sucesso."
+        });
+
+        fetchEventos(); // Atualiza a lista
+        resetForm(); // Limpa e fecha
+      } else {
+        throw new Error('Erro ao salvar');
+      }
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Erro",
+        description: "Não foi possível salvar o evento."
+      });
     }
   };
 
@@ -253,7 +259,8 @@ const Eventos = () => {
 
     try {
       const response = await fetch(`http://localhost:5000/api/v1/eventos/${eventId}`, {
-        method: 'DELETE'
+        method: 'DELETE',
+        credentials: 'include',
       });
 
       if (response.ok) {
@@ -291,8 +298,9 @@ const Eventos = () => {
           isLimited: evt.tipo_vagas === 'limitada',
           vacancy: evt.numero_vagas || 0,
           // **ATUALIZADO**: Assumindo que o backend retorna o número de inscritos (contagem)
-          registered: evt.registered_count || 0, 
-          description: evt.descricao
+          registered: evt.registered_count || 0,
+          description: evt.descricao,
+          criado_por_id: evt.criado_por
         }));
 
         // NOVO: LÓGICA DE LIMPEZA AUTOMÁTICA DE EVENTOS PASSADOS (Mantida)
@@ -300,36 +308,36 @@ const Eventos = () => {
         let successfulDeletions = 0;
 
         if (pastEvents.length > 0) {
-            console.log(`[CLEANUP] Encontrados ${pastEvents.length} eventos passados para exclusão...`);
-            
-            for (const event of pastEvents) {
-                try {
-                    const deleteResponse = await fetch(`http://localhost:5000/api/v1/eventos/${event.id}`, {
-                        method: 'DELETE'
-                    });
+          console.log(`[CLEANUP] Encontrados ${pastEvents.length} eventos passados para exclusão...`);
 
-                    if (deleteResponse.ok) {
-                        successfulDeletions++;
-                    } else {
-                        console.error(`[CLEANUP ERROR] Falha ao excluir evento ${event.id}`);
-                    }
-                } catch (error) {
-                    console.error(`[CLEANUP ERROR] Erro de rede ao excluir evento ${event.id}:`, error);
-                }
+          for (const event of pastEvents) {
+            try {
+              const deleteResponse = await fetch(`http://localhost:5000/api/v1/eventos/${event.id}`, {
+                method: 'DELETE'
+              });
+
+              if (deleteResponse.ok) {
+                successfulDeletions++;
+              } else {
+                console.error(`[CLEANUP ERROR] Falha ao excluir evento ${event.id}`);
+              }
+            } catch (error) {
+              console.error(`[CLEANUP ERROR] Erro de rede ao excluir evento ${event.id}:`, error);
             }
+          }
 
-            if (successfulDeletions > 0) {
-                toast({
-                    title: "Limpeza automática concluída",
-                    description: `${successfulDeletions} evento(s) passado(s) foram excluído(s) da agenda.`
-                });
+          if (successfulDeletions > 0) {
+            toast({
+              title: "Limpeza automática concluída",
+              description: `${successfulDeletions} evento(s) passado(s) foram excluído(s) da agenda.`
+            });
 
-                await fetchEventos();
-                return;
-            }
+            await fetchEventos();
+            return;
+          }
         }
         // FIM DA LÓGICA DE LIMPEZA AUTOMÁTICA
-        
+
         setEvents(eventosFormatados);
       }
     } catch (error) {
@@ -574,18 +582,19 @@ const Eventos = () => {
                         >
                           <Users className="icon-sm" />
                         </Button>
-                        
-                        <Button variant="ghost" size="icon" onClick={() => handleEditClick(event)} title="Editar Evento">
-                          <Edit className="icon-sm" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          title="Excluir Evento"
-                          onClick={() => handleDeleteEvent(event.id)}
-                        >
-                          <Trash2 className="icon-sm text-destructive" />
-                        </Button>
+
+                        {/* LÓGICA DE PERMISSÃO: Admin vê tudo, Gestor vê apenas o dele */}
+                        {(user?.tipo === 'admin' || event.criado_por_id === user?.id) && (
+                          <>
+                            <Button variant="ghost" size="icon" onClick={() => handleEditClick(event)}>
+                              <Edit className="icon-sm" />
+                            </Button>
+
+                            <Button variant="ghost" size="icon" onClick={() => handleDeleteEvent(event.id)}>
+                              <Trash2 className="icon-sm text-destructive" />
+                            </Button>
+                          </>
+                        )}
                       </div>
                     </div>
                   </CardContent>
