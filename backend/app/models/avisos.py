@@ -1,5 +1,6 @@
 from peewee import *
 from . import BaseModel
+from .usuario import Usuario
 
 class Aviso(BaseModel):
     id = AutoField()
@@ -8,3 +9,5 @@ class Aviso(BaseModel):
     url = CharField(max_length=250, null=True)
     descricao = TextField(null=True)
     data = DateField()
+
+    criado_por = ForeignKeyField(Usuario, backref='avisos') # Relação

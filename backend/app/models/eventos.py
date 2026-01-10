@@ -1,5 +1,6 @@
 from peewee import *
 from . import BaseModel
+from .usuario import Usuario
 
 class Evento(BaseModel):
     id = AutoField()
@@ -11,3 +12,5 @@ class Evento(BaseModel):
     data = DateField()
     horario = TimeField()
     descricao = TextField(null=True)
+
+    criado_por = ForeignKeyField(Usuario, backref='eventos') # Relação

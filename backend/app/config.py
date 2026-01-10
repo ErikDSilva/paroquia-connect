@@ -19,3 +19,5 @@ class Config:
     MAIL_USERNAME = os.environ.get('MAIL_USERNAME', 'seu-email@paroquia.com.br')
     MAIL_PASSWORD = os.environ.get('MAIL_PASSWORD', 'sua-senha-do-email')
     MAIL_DEFAULT_SENDER = os.environ.get('MAIL_DEFAULT_SENDER', 'contato@paroquia.com.br')
+
+    TARGET_EMAIL = os.environ.get('TARGET_EMAIL', 'contato@paroquia.com.br')

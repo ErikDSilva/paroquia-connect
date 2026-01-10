@@ -2,6 +2,8 @@ import { useState, useEffect } from "react";
 import { HeaderSecretaria } from "@/components/HeaderSecretaria";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Users, Calendar, FileText, Clock, Activity } from "lucide-react";
+import { useAuth } from "@/context/AuthContext";
+
 import "@/static/home/home-admin.css";
 
 const Admin = () => {
@@ -22,7 +24,9 @@ const Admin = () => {
   useEffect(() => {
     const fetchDashboard = async () => {
       try {
-        const response = await fetch("http://localhost:5000/api/v1/dashboard");
+        const response = await fetch("http://localhost:5000/api/v1/dashboard", {
+          credentials: 'include' // <--- OBRIGATÓRIO: Envia o cookie para o Flask
+        });
         if (response.ok) {
           const data = await response.json();
           setDashboardData(data);
@@ -41,13 +45,23 @@ const Admin = () => {
 
   // Mapeamento dos dados do backend para os Cards visuais
   // Observação: O backend retorna 'agenda' e 'horarios', então ajustei os títulos dos cards
+
+  const { user } = useAuth();
+
   const statsCards = [
+    // {
+    //   title: "Meus Agendamentos",
+    //   value: dashboardData.stats.agenda,
+    //   description: user?.tipo === 'admin' ? "Total da paróquia" : "Criados por você",
+    //   icon: Users,
+    //   trend: "Ativos"
+    // },
     {
       title: "Agendamentos",
       value: dashboardData.stats.agenda,
       description: "Total registrado",
       icon: Users, // Usando ícone de usuários/agenda
-      trend: "Ativos" 
+      trend: "Ativos"
     },
     {
       title: "Eventos",
@@ -83,7 +97,7 @@ const Admin = () => {
   return (
     <div className="admin-page">
       <HeaderSecretaria />
-      
+
       <main className="admin-main-container">
         <div className="admin-header-section">
           <h1 className="admin-title">Painel Administrativo</h1>

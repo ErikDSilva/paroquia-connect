@@ -19,10 +19,10 @@ def create_app(config_class=Config):
 
     # Configuração do CORS
     CORS(app, resources={
-        r"/api/*": {
-            "origins": app.config.get('CORS_ORIGINS', '*')
-        }
-    }, supports_credentials=True)
+            r"/api/*": {
+                "origins": ["http://localhost:5173"] 
+            }
+        }, supports_credentials=True)
 
     # 3. INICIAR O MAIL
     mail.init_app(app)
@@ -45,6 +45,9 @@ def create_app(config_class=Config):
     
     from .api.auth_routes import auth_bp
     app.register_blueprint(auth_bp, url_prefix='/api/v1/auth')
+
+    from .api.auth_routes import admin_management_bp 
+    app.register_blueprint(admin_management_bp, url_prefix='/api/v1/admin_management')
 
     # Rota de teste
     @app.route('/health')

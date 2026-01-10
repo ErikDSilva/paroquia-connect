@@ -4,14 +4,24 @@ import { HeaderSecretaria } from "@/components/HeaderSecretaria";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+// Importações de Dialog, Table, ScrollArea
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { CalendarPlus, Edit, Trash2, BookOpen, Sparkles, PartyPopper, HandHeart, ClipboardList } from "lucide-react";
+// NOVAS Importações para a tabela de inscritos
+import { Table, TableBody, TableCaption, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { ScrollArea } from "@/components/ui/scroll-area";
+
+import { CalendarPlus, Edit, Trash2, BookOpen, Sparkles, PartyPopper, HandHeart, ClipboardList, Users } from "lucide-react"; // Adicionando Users icon
 import { useToast } from "@/hooks/use-toast";
+
+import { useAuth } from "@/context/AuthContext";
+
 import "@/static/admin/agenda-evento/style.css"
+
+// --- NOVOS TYPES ---
 
 type Evento = {
   id: number;
@@ -24,41 +34,56 @@ type Evento = {
   vacancy: number;
   registered: number;
   description: string;
+  criado_por_id: number | null;
+};
+
+// NOVO TYPE: Estrutura para os dados do inscrito
+type Inscricao = {
+  id: number;
+  nome: string;
+  telefone: string;
+  data_inscricao: string; // Ex: 2025-01-01T10:00:00Z
 };
 
 // FUNÇÃO UTILITÁRIA PARA VERIFICAR SE O EVENTO ESTÁ NO PASSADO
 const isEventInPast = (event: Evento): boolean => {
-    // Cria uma string de data/hora no formato ISO 8601 (YYYY-MM-DDTTHH:MM)
-    const eventDateTimeString = `${event.date}T${event.time}`;
-    const eventDateTime = new Date(eventDateTimeString);
+  // Cria uma string de data/hora no formato ISO 8601 (YYYY-MM-DDTTHH:MM)
+  const eventDateTimeString = `${event.date}T${event.time}`;
+  const eventDateTime = new Date(eventDateTimeString);
 
-    // Obtém a data/hora atual
-    const now = new Date();
+  // Obtém a data/hora atual
+  const now = new Date();
 
-    // Compara se a data do evento é anterior ou igual à data/hora atual
-    return eventDateTime <= now;
+  // Compara se a data do evento é anterior ou igual à data/hora atual
+  return eventDateTime <= now;
 };
 
-  const isFormDateInPast = (formData: any): boolean => {
-    if (!formData.data || !formData.horario) return false;
+const isFormDateInPast = (formData: any): boolean => {
+  if (!formData.data || !formData.horario) return false;
 
-    // Combina a data (YYYY-MM-DD) e o horário (HH:MM) para criar um objeto Date
-    const eventDateTimeString = `${formData.data}T${formData.horario}:00`; // Adiciona segundos :00
-    const eventDateTime = new Date(eventDateTimeString);
+  // Combina a data (YYYY-MM-DD) e o horário (HH:MM) para criar um objeto Date
+  const eventDateTimeString = `${formData.data}T${formData.horario}:00`; // Adiciona segundos :00
+  const eventDateTime = new Date(eventDateTimeString);
 
-    // Obtém o momento atual para comparação.
-    const now = new Date();
-    
-    // Compara se a data/hora do evento é estritamente anterior à data/hora atual.
-    return eventDateTime < now; 
+  // Obtém o momento atual para comparação.
+  const now = new Date();
+
+  // Compara se a data/hora do evento é estritamente anterior à data/hora atual.
+  return eventDateTime < now;
 };
 
 const Eventos = () => {
   const { toast } = useToast();
+  const { user } = useAuth();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedType, setSelectedType] = useState("all");
+  const [editingId, setEditingId] = useState<number | null>(null);
 
-  const [editingId, setEditingId] = useState<number | null>(null)
+  // --- NOVOS ESTADOS PARA INSCRITOS ---
+  const [isRegistrationsDialogOpen, setIsRegistrationsDialogOpen] = useState(false);
+  const [currentEventTitle, setCurrentEventTitle] = useState("");
+  const [registrations, setRegistrations] = useState<Inscricao[]>([]);
+  // ------------------------------------
 
   // ESTADO DO FORMULÁRIO (Adicione isto)
   const [formData, setFormData] = useState({
@@ -76,7 +101,7 @@ const Eventos = () => {
     const offset = date.getTimezoneOffset() * 60000; // offset em ms
     const localTime = new Date(date.getTime() - offset);
     return localTime.toISOString().split('T')[0];
-}
+  }
 
   // Obter a data de hoje no formato YYYY-MM-DD para o atributo 'min' do input
   const todayDateString = getLocalISODate(new Date());
@@ -89,6 +114,7 @@ const Eventos = () => {
   // Dados de exemplo com 'registered'
   const [events, setEvents] = useState<Evento[]>([]);
 
+  // Funções utilitárias (getTypeName, getTypeIcon, getTypeBadge) permanecem as mesmas
   const getTypeName = (type: string) => {
     const typeNames: Record<string, string> = {
       formacao: "Formação",
@@ -126,7 +152,36 @@ const Eventos = () => {
     ? events
     : events.filter(event => event.type === selectedType);
 
-  // --- NOVO: Função para limpar o formulário e resetar estado de edição ---
+  // --- Função para buscar e exibir inscrições ---
+  const fetchRegistrations = async (eventId: number, eventTitle: string) => {
+    setCurrentEventTitle(eventTitle);
+    setRegistrations([]); // Limpa a lista anterior
+    setIsRegistrationsDialogOpen(true); // Abre o modal (opcional, pode ser movido para depois do fetch)
+
+    try {
+      // **ASSUME** que você tem uma rota no backend (ex: http://localhost:5000/api/v1/eventos/1/inscricoes)
+      const response = await fetch(`http://localhost:5000/api/v1/eventos/${eventId}/inscricoes`);
+
+      if (response.ok) {
+        const data: Inscricao[] = await response.json();
+        setRegistrations(data);
+      } else {
+        throw new Error('Erro ao buscar inscrições');
+      }
+    } catch (error) {
+      console.error("Erro ao buscar inscrições:", error);
+      setRegistrations([]); // Garante que a lista fique vazia em caso de erro
+      toast({
+        variant: "destructive",
+        title: "Erro de conexão",
+        description: `Não foi possível carregar a lista de inscritos para o evento: ${eventTitle}.`
+      });
+    }
+  };
+  // ----------------------------------------------
+
+
+  // --- FUNÇÕES EXISTENTES (resetForm, handleSaveEvent, handleEditClick, handleDeleteEvent) ---
   const resetForm = () => {
     setFormData({
       titulo: "", tipo: "", local: "", tipo_vagas: "limitada",
@@ -136,55 +191,54 @@ const Eventos = () => {
     setIsDialogOpen(false);
   };
 
-  // --- ATUALIZADO: Função única para Salvar (Criar ou Editar) ---
-const handleSaveEvent = async () => {
+  const handleSaveEvent = async () => {
     try {
-        // VALIDAÇÃO DE DATA
-        if (isFormDateInPast(formData)) {
-            toast({
-                variant: "destructive",
-                title: "Erro de Data",
-                description: "Não é possível criar ou editar um evento para uma data passada."
-            });
-            return; // Interrompe a execução se a data for inválida
-        }
-
-        // Define a URL e o Método baseado se estamos editando ou criando
-        const url = editingId
-            ? `http://localhost:5000/api/v1/eventos/${editingId}`
-            : 'http://localhost:5000/api/v1/eventos';
-
-        const method = editingId ? 'PUT' : 'POST';
-
-        const response = await fetch(url, {
-            method: method,
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(formData),
-        });
-
-        if (response.ok) {
-            toast({
-                title: "Sucesso!",
-                description: editingId ? "Evento atualizado com sucesso." : "Evento criado com sucesso."
-            });
-
-            fetchEventos(); // Atualiza a lista
-            resetForm(); // Limpa e fecha
-        } else {
-            throw new Error('Erro ao salvar');
-        }
-    } catch (error) {
+      // VALIDAÇÃO DE DATA
+      if (isFormDateInPast(formData)) {
         toast({
-            variant: "destructive",
-            title: "Erro",
-            description: "Não foi possível salvar o evento."
+          variant: "destructive",
+          title: "Erro de Data",
+          description: "Não é possível criar ou editar um evento para uma data passada."
         });
-    }
-};
+        return; // Interrompe a execução se a data for inválida
+      }
 
-  // --- NOVO: Função para preencher o formulário ao clicar em Editar ---
+      // Define a URL e o Método baseado se estamos editando ou criando
+      const url = editingId
+        ? `http://localhost:5000/api/v1/eventos/${editingId}`
+        : 'http://localhost:5000/api/v1/eventos';
+
+      const method = editingId ? 'PUT' : 'POST';
+
+      const response = await fetch(url, {
+        method: method,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify(formData),
+      });
+
+      if (response.ok) {
+        toast({
+          title: "Sucesso!",
+          description: editingId ? "Evento atualizado com sucesso." : "Evento criado com sucesso."
+        });
+
+        fetchEventos(); // Atualiza a lista
+        resetForm(); // Limpa e fecha
+      } else {
+        throw new Error('Erro ao salvar');
+      }
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Erro",
+        description: "Não foi possível salvar o evento."
+      });
+    }
+  };
+
   const handleEditClick = (evento: Evento) => {
     setEditingId(evento.id); // Marca que estamos editando este ID
     setFormData({
@@ -200,13 +254,13 @@ const handleSaveEvent = async () => {
     setIsDialogOpen(true); // Abre o modal
   };
 
-  // --- ATUALIZADO: Função para deletar chamando a API ---
   const handleDeleteEvent = async (eventId: number) => {
     if (!confirm("Tem certeza que deseja excluir esta agenda?")) return;
 
     try {
       const response = await fetch(`http://localhost:5000/api/v1/eventos/${eventId}`, {
-        method: 'DELETE'
+        method: 'DELETE',
+        credentials: 'include',
       });
 
       if (response.ok) {
@@ -226,6 +280,7 @@ const handleSaveEvent = async () => {
       });
     }
   };
+  // --------------------------------------------------------------------------
 
   const fetchEventos = async () => {
     try {
@@ -233,60 +288,57 @@ const handleSaveEvent = async () => {
       if (response.ok) {
         const data = await response.json();
 
-        // Ajuste os dados do banco para o formato da tela se necessário
-        // O Peewee retorna campos como snake_case (tipo_vagas), mas seu frontend usa camelCase ou inglês?
-        // Baseado no seu type Evento (linha 16), vamos mapear:
         const eventosFormatados = data.map((evt: any) => ({
           id: evt.id,
           title: evt.titulo,
           type: evt.tipo,
-          date: evt.data, // O React espera string YYYY-MM-DD, verifique se o backend manda assim
+          date: evt.data,
           time: evt.horario,
           location: evt.local,
           isLimited: evt.tipo_vagas === 'limitada',
           vacancy: evt.numero_vagas || 0,
-          registered: 0, // Por enquanto 0, pois ainda não temos contagem de inscritos
-          description: evt.descricao
+          // **ATUALIZADO**: Assumindo que o backend retorna o número de inscritos (contagem)
+          registered: evt.registered_count || 0,
+          description: evt.descricao,
+          criado_por_id: evt.criado_por
         }));
 
-        // NOVO: LÓGICA DE LIMPEZA AUTOMÁTICA DE EVENTOS PASSADOS
+        // NOVO: LÓGICA DE LIMPEZA AUTOMÁTICA DE EVENTOS PASSADOS (Mantida)
         const pastEvents = eventosFormatados.filter(isEventInPast);
         let successfulDeletions = 0;
 
         if (pastEvents.length > 0) {
-            console.log(`[CLEANUP] Encontrados ${pastEvents.length} eventos passados para exclusão...`);
-            
-            // Itera e exclui cada evento passado SILENCIOSAMENTE
-            for (const event of pastEvents) {
-                try {
-                    const deleteResponse = await fetch(`http://localhost:5000/api/v1/eventos/${event.id}`, {
-                        method: 'DELETE'
-                    });
+          console.log(`[CLEANUP] Encontrados ${pastEvents.length} eventos passados para exclusão...`);
 
-                    if (deleteResponse.ok) {
-                        successfulDeletions++;
-                    } else {
-                        console.error(`[CLEANUP ERROR] Falha ao excluir evento ${event.id}`);
-                    }
-                } catch (error) {
-                    console.error(`[CLEANUP ERROR] Erro de rede ao excluir evento ${event.id}:`, error);
-                }
+          for (const event of pastEvents) {
+            try {
+              const deleteResponse = await fetch(`http://localhost:5000/api/v1/eventos/${event.id}`, {
+                method: 'DELETE'
+              });
+
+              if (deleteResponse.ok) {
+                successfulDeletions++;
+              } else {
+                console.error(`[CLEANUP ERROR] Falha ao excluir evento ${event.id}`);
+              }
+            } catch (error) {
+              console.error(`[CLEANUP ERROR] Erro de rede ao excluir evento ${event.id}:`, error);
             }
+          }
 
-            if (successfulDeletions > 0) {
-                toast({
-                    title: "Limpeza automática concluída",
-                    description: `${successfulDeletions} evento(s) passado(s) foram excluído(s) da agenda.`
-                });
+          if (successfulDeletions > 0) {
+            toast({
+              title: "Limpeza automática concluída",
+              description: `${successfulDeletions} evento(s) passado(s) foram excluído(s) da agenda.`
+            });
 
-                // RECURSIVO: Chama fetchEventos novamente para carregar a lista limpa e sai
-                await fetchEventos();
-                return;
-            }
+            await fetchEventos();
+            return;
+          }
         }
         // FIM DA LÓGICA DE LIMPEZA AUTOMÁTICA
-        
-        setEvents(eventosFormatados);
+
+        setEvents(eventosFormatados);
       }
     } catch (error) {
       console.error("Erro ao buscar eventos:", error);
@@ -308,6 +360,7 @@ const handleSaveEvent = async () => {
       <HeaderSecretaria />
 
       <main className="main-content">
+        {/* ... (Cabeçalho da página) ... */}
         <div className="page-header">
           <h1 className="page-title">Gerenciamento de Eventos</h1>
           <p className="page-subtitle">Gerencie eventos pastorais</p>
@@ -315,6 +368,7 @@ const handleSaveEvent = async () => {
 
         <Card>
           <CardHeader>
+            {/* ... (Controles de filtro e botão Novo Evento) ... */}
             <div className="card-header-wrapper">
               <div>
                 <CardTitle>Eventos Paroquiais</CardTitle>
@@ -343,18 +397,17 @@ const handleSaveEvent = async () => {
                 }}>
                   <DialogTrigger asChild>
                     <Button className="btn-new-event" onClick={() => resetForm()}>
-                      {/* onClick no botão Novo garante que o form esteja limpo */}
                       <CalendarPlus className="mr-2 icon-sm" />
                       Novo Evento
                     </Button>
                   </DialogTrigger>
+                  {/* ... (DialogContent do formulário de Criar/Editar Evento) ... */}
                   <DialogContent className="dialog-content-lg">
                     <DialogHeader>
-                      <DialogTitle>Criar Novo Evento</DialogTitle>
+                      <DialogTitle>{editingId ? "Editar Evento" : "Criar Novo Evento"}</DialogTitle>
                       <DialogDescription>Preencha os dados do evento</DialogDescription>
                     </DialogHeader>
                     <div className="dialog-body">
-                      {/* Campos do formulário */}
                       <div className="form-group">
                         <Label htmlFor="event-title">Título do Evento</Label>
                         <Input
@@ -367,12 +420,12 @@ const handleSaveEvent = async () => {
                       <div className="form-row">
                         <div className="form-group">
                           <Label htmlFor="event-type">Tipo</Label>
-                          <Select onValueChange={(value) => handleInputChange('tipo', value)}>
+                          <Select onValueChange={(value) => handleInputChange('tipo', value)} value={formData.tipo}>
                             <SelectTrigger id="event-type">
                               <SelectValue placeholder="Selecione o tipo" />
                             </SelectTrigger>
                             <SelectContent>
-                              <SelectItem value="outro">Outro  </SelectItem>
+                              <SelectItem value="outro">Outro</SelectItem>
                               <SelectItem value="formacao">Formação</SelectItem>
                               <SelectItem value="espiritualidade">Espiritualidade</SelectItem>
                               <SelectItem value="festividade">Festividade</SelectItem>
@@ -415,7 +468,6 @@ const handleSaveEvent = async () => {
                               type="number"
                               placeholder="Ex: 50"
                               min="1"
-                              // Esta parte do Input já estava correta no seu código:
                               value={formData.numero_vagas}
                               onChange={(e) => handleInputChange('numero_vagas', e.target.value)}
                             />
@@ -449,7 +501,6 @@ const handleSaveEvent = async () => {
                           id="event-description"
                           placeholder="Descreva o evento..."
                           rows={3}
-                          // ADICIONE ESTAS DUAS LINHAS:
                           value={formData.descricao}
                           onChange={(e) => handleInputChange('descricao', e.target.value)}
                         />
@@ -459,7 +510,7 @@ const handleSaveEvent = async () => {
                       <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
                         Cancelar
                       </Button>
-                      <Button onClick={handleSaveEvent}>Criar Evento</Button>
+                      <Button onClick={handleSaveEvent}>{editingId ? "Salvar Alterações" : "Criar Evento"}</Button>
                     </div>
                   </DialogContent>
                 </Dialog>
@@ -473,6 +524,7 @@ const handleSaveEvent = async () => {
                   <CardContent className="event-card-content">
                     <div className="event-details-wrapper">
                       <div className="event-main-details">
+                        {/* ... (Detalhes do Evento) ... */}
                         <div className="event-icon-badge">
                           <div className="mt-1">
                             {getTypeIcon(event.type)}
@@ -497,11 +549,11 @@ const handleSaveEvent = async () => {
                           </div>
                         </div>
 
-                        {/* ===== INÍCIO DA ATUALIZAÇÃO DE EXIBIÇÃO ===== */}
+                        {/* ===== ATUALIZAÇÃO DE EXIBIÇÃO DE INSCRITOS ===== */}
                         <div className="event-participants-info">
                           {event.isLimited ? (
                             <>
-                              <span className="metadata-label">Vagas:</span> {event.registered} / {event.vacancy}
+                              <span className="metadata-label">Vagas:</span> **{event.registered} / {event.vacancy}**
 
                               {/* Indicador de "Lotado" */}
                               {event.registered >= event.vacancy && (
@@ -512,25 +564,37 @@ const handleSaveEvent = async () => {
                             </>
                           ) : (
                             <>
-                              <span className="metadata-label">Registrados:</span> {event.registered}
+                              <span className="metadata-label">Registrados:</span> **{event.registered}**
                             </>
                           )}
                         </div>
-                        {/* ===== FIM DA ATUALIZAÇÃO DE EXIBIÇÃO ===== */}
+                        {/* ================================================= */}
 
                       </div>
 
                       <div className="event-actions">
-                        <Button variant="ghost" size="icon" onClick={() => handleEditClick(event)}>
-                          <Edit className="icon-sm" />
-                        </Button>
+                        {/* NOVO BOTÃO: Visualizar Inscritos */}
                         <Button
                           variant="ghost"
                           size="icon"
-                          onClick={() => handleDeleteEvent(event.id)}
+                          title="Visualizar Inscritos"
+                          onClick={() => fetchRegistrations(event.id, event.title)}
                         >
-                          <Trash2 className="icon-sm text-destructive" />
+                          <Users className="icon-sm" />
                         </Button>
+
+                        {/* LÓGICA DE PERMISSÃO: Admin vê tudo, Gestor vê apenas o dele */}
+                        {(user?.tipo === 'admin' || event.criado_por_id === user?.id) && (
+                          <>
+                            <Button variant="ghost" size="icon" onClick={() => handleEditClick(event)}>
+                              <Edit className="icon-sm" />
+                            </Button>
+
+                            <Button variant="ghost" size="icon" onClick={() => handleDeleteEvent(event.id)}>
+                              <Trash2 className="icon-sm text-destructive" />
+                            </Button>
+                          </>
+                        )}
                       </div>
                     </div>
                   </CardContent>
@@ -540,6 +604,54 @@ const handleSaveEvent = async () => {
           </CardContent>
         </Card>
       </main>
+
+      {/* NOVO: DIALOG/MODAL PARA EXIBIR INSCRITOS */}
+      <Dialog open={isRegistrationsDialogOpen} onOpenChange={setIsRegistrationsDialogOpen}>
+        <DialogContent className="dialog-content-lg">
+          <DialogHeader>
+            <DialogTitle>Lista de Inscritos</DialogTitle>
+            <DialogDescription>
+              Inscritos para o evento: **{currentEventTitle}** ({registrations.length} total)
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="dialog-body-registrations">
+            {registrations.length === 0 ? (
+              <p className="text-muted-foreground">Nenhuma inscrição encontrada para este evento.</p>
+            ) : (
+              <ScrollArea className="h-[300px] w-full border rounded-md">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="w-[100px]">#</TableHead>
+                      <TableHead>Nome</TableHead>
+                      <TableHead>Telefone</TableHead>
+                      <TableHead className="text-right">Data de Inscrição</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {registrations.map((inscricao, index) => (
+                      <TableRow key={inscricao.id}>
+                        <TableCell className="font-medium">{index + 1}</TableCell>
+                        <TableCell>{inscricao.nome}</TableCell>
+                        <TableCell>{inscricao.telefone}</TableCell>
+                        <TableCell className="text-right">
+                          {new Date(inscricao.data_inscricao).toLocaleDateString('pt-BR')}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                  <TableCaption>Fim da lista de inscritos.</TableCaption>
+                </Table>
+              </ScrollArea>
+            )}
+          </div>
+          <div className="dialog-footer">
+            <Button onClick={() => setIsRegistrationsDialogOpen(false)}>Fechar</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+      {/* FIM: DIALOG/MODAL INSCRITOS */}
     </div>
   );
 };
