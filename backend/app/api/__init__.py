@@ -4,4 +4,9 @@ from flask import Blueprint
 api_bp = Blueprint('api', __name__)
 
 # Importa as rotas no final para evitar importação circular
-from . import routes
+from . import email
+from . import dashboard
+from . import eventos
+from . import agenda
+from . import avisos
+from . import horarios

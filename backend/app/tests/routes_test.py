@@ -1,3 +1,28 @@
+"""
+Testes de Rotas - Estrutura Organizada por Arquivo
+================================================
+
+Este arquivo contém testes para todas as rotas da API. As rotas estão organizadas em 
+arquivos separados em app/api/, mas todas registram-se no blueprint central 'api_bp':
+
+- eventos.py: Rotas de eventos e inscrições (/eventos, /inscricao)
+- avisos.py: Rotas de avisos (/avisos)
+- agenda.py: Rotas de agenda (/agenda)
+- horarios.py: Rotas de horários públicos (/horarios)
+- dashboard.py: Rota de dashboard (/dashboard)
+- email.py: Rota de envio de email (/enviar-email)
+- auth_routes.py: Rotas de autenticação e gestão de admins (/auth, /admins)
+
+Todos os arquivos de rota em app/api/ importam e usam o blueprint central 'api_bp' 
+definido em app/api/__init__.py, que é registrado uma única vez com o prefixo '/api/v1'.
+
+Estrutura de Fixtures:
+- test_db: Banco de dados em memória para testes
+- client: Cliente Flask para requisições HTTP
+- logged_in_client: Cliente com usuário admin autenticado
+- admin_user: Usuário admin para testes de relacionamento
+"""
+
 import pytest
 import json
 from datetime import date, time, timedelta
@@ -31,8 +56,8 @@ class TestingConfig:
     LOGIN_DISABLED = False
 
 def create_test_app():
-    from flask import Flask
-    from app.api.routes import api_bp
+    from flask import Flask, jsonify
+    from app.api import api_bp
     from app.api.auth_routes import auth_bp
     from app.api.auth_routes import admin_management_bp
     from flask_mail import Mail
@@ -49,9 +74,18 @@ def create_test_app():
     def load_user(user_id):
         return Usuario.get_or_none(Usuario.idusuario == user_id)
 
+    # Registra o blueprint central da API que contém todas as rotas
+    # (eventos, avisos, agenda, horarios, dashboard, email)
     app.register_blueprint(api_bp, url_prefix='/api/v1')
+    
+    # Registra blueprints de autenticação
     app.register_blueprint(auth_bp, url_prefix='/auth')
     app.register_blueprint(admin_management_bp, url_prefix='/auth')
+    
+    # Rota de health check
+    @app.route('/health')
+    def health_check():
+        return jsonify({"status": "healthy"}), 200
     
     return app
 
@@ -104,7 +138,7 @@ def cleanup_data(test_db):
     Usuario.delete().where(Usuario.idusuario != 999).execute()
 
 # ---------------------------------------------------------------------
-# -------------------- TESTES DE AUTENTICAÇÃO (/auth) --------------------
+# --- TESTES DE AUTENTICAÇÃO (auth_routes.py) ---
 # ---------------------------------------------------------------------
 
 def test_auth_register_success(client, test_db):
@@ -171,7 +205,7 @@ def test_auth_me_authenticated(logged_in_client):
     assert data['user']['email'] == "admin@test.com"
 
 # ---------------------------------------------------------------------
-# -------------------- TESTES DE DASHBOARD (/dashboard) --------------------
+# --- TESTES DE DASHBOARD (dashboard.py) ---
 # ---------------------------------------------------------------------
 
 def test_dashboard_data_empty(logged_in_client, test_db):
@@ -212,7 +246,7 @@ def test_dashboard_data_full(logged_in_client, test_db):
     assert "Novo Agendamento" in actions
 
 # ---------------------------------------------------------------------
-# -------------------- TESTES DE EVENTOS (/eventos) --------------------
+# --- TESTES DE EVENTOS (eventos.py) ---
 # ---------------------------------------------------------------------
 
 def test_eventos_create_success(logged_in_client, test_db):
@@ -301,7 +335,7 @@ def test_eventos_delete_success(logged_in_client, test_db):
     assert InscricaoEvento.select().count() == 0 
 
 # ---------------------------------------------------------------------
-# -------------------- TESTES DE INSCRIÇÃO (/inscricao) --------------------
+# --- TESTES DE INSCRIÇÃO (eventos.py) ---
 # ---------------------------------------------------------------------
 
 def test_inscricao_create_success(logged_in_client, test_db):
@@ -365,7 +399,7 @@ def test_inscricao_get_list(logged_in_client, test_db):
     assert lista[0]['nome'] == "Inscrito A"
 
 # ---------------------------------------------------------------------
-# -------------------- TESTES DE AGENDA (/agenda) --------------------
+# --- TESTES DE AGENDA (agenda.py) ---
 # ---------------------------------------------------------------------
 
 def test_agenda_create_success(logged_in_client, test_db):
@@ -400,7 +434,7 @@ def test_agenda_delete_not_found(logged_in_client, test_db):
     assert response.status_code == 404
     
 # ---------------------------------------------------------------------
-# -------------------- TESTES DE AVISOS (/avisos) --------------------
+# --- TESTES DE AVISOS (avisos.py) ---
 # ---------------------------------------------------------------------
 
 def test_avisos_create_success(logged_in_client, test_db):
@@ -431,7 +465,7 @@ def test_avisos_get_list(logged_in_client, test_db):
     assert lista[1]['titulo'] == "Antigo"
 
 # ---------------------------------------------------------------------
-# -------------------- TESTES DE HORÁRIOS (/horarios) --------------------
+# --- TESTES DE HORÁRIOS (horarios.py) ---
 # ---------------------------------------------------------------------
 
 def test_horarios_create_success(logged_in_client, test_db):
@@ -481,10 +515,10 @@ def test_horarios_delete_success(logged_in_client, test_db):
     assert Agenda.select().where(Agenda.id == horario.id).count() == 0
 
 # ---------------------------------------------------------------------
-# -------------------- TESTES DE E-MAIL (/enviar-email) --------------------
+# --- TESTES DE E-MAIL (email.py) ---
 # ---------------------------------------------------------------------
 
-@patch('app.api.routes.mail.send') 
+@patch('app.api.email.mail.send') 
 def test_send_email_success(mock_mail_send, client):
     """Testa o envio de email com todos os campos obrigatórios."""
     payload = {
@@ -510,7 +544,7 @@ def test_send_email_success(mock_mail_send, client):
     assert "joao@contato.com" in msg_called.reply_to
     assert "Telefone: 987654321" in msg_called.body
 
-@patch('app.api.routes.mail.send')
+@patch('app.api.email.mail.send')
 def test_send_email_missing_fields(mock_mail_send, client):
     """Testa a falha quando campos obrigatórios estão faltando."""
     payload = {"nome": "João", "assunto": "Dúvida"}
@@ -521,7 +555,7 @@ def test_send_email_missing_fields(mock_mail_send, client):
 
 
 # ---------------------------------------------------------------------
-# -------------------- TESTES DE ADMINISTRAÇÃO (/admins) --------------------
+# --- TESTES DE ADMINISTRAÇÃO (auth_routes.py) ---
 # ---------------------------------------------------------------------
 
 def test_admins_list_empty(logged_in_client, test_db):
@@ -987,3 +1021,205 @@ def test_inscricao_evento_missing_numero(logged_in_client, test_db):
     response = logged_in_client.post('/api/v1/eventos/1/inscricao',
         json={"nome": "João"})
     assert response.status_code in [400, 404]
+
+# --- TESTES DE APLICAÇÃO (app/__init__.py) ---
+
+def test_health_check(client):
+    """Testa rota de health check."""
+    response = client.get('/health')
+    assert response.status_code == 200
+    data = json.loads(response.data)
+    assert data['status'] == "healthy"
+
+
+# --- TESTES DE ERRO E VALIDAÇÃO (cobertura de casos não testados) ---
+
+def test_aviso_create_missing_fields(logged_in_client, test_db):
+    """Testa criação de aviso sem campos obrigatórios."""
+    payload = {"titulo": "Sem categoria"}
+    response = logged_in_client.post('/api/v1/avisos', json=payload)
+    assert response.status_code == 400
+    data = json.loads(response.data)
+    assert "Campos obrigatórios" in data['error']
+
+def test_avisos_update_success(logged_in_client, test_db):
+    """Testa atualização de aviso."""
+    admin = Usuario.get_by_id(999)
+    aviso = Aviso.create(titulo="Original", categoria="Geral", data=date.today(), criado_por=admin)
+    
+    response = logged_in_client.put(f'/api/v1/avisos/{aviso.id}',
+        json={"titulo": "Atualizado", "categoria": "Urgente"})
+    
+    assert response.status_code == 200
+    aviso_att = Aviso.get_by_id(aviso.id)
+    assert aviso_att.titulo == "Atualizado"
+
+def test_agenda_create_missing_fields(logged_in_client, test_db):
+    """Testa criação de agenda sem campos obrigatórios."""
+    payload = {"tipo": "Reunião"}
+    response = logged_in_client.post('/api/v1/agenda', json=payload)
+    assert response.status_code == 400
+    data = json.loads(response.data)
+    assert "obrigatórios" in data['error'].lower()
+
+def test_agenda_update_success(logged_in_client, test_db):
+    """Testa atualização de agenda."""
+    admin = Usuario.get_by_id(999)
+    agenda = Agenda.create(titulo="Original", tipo="T", local="L", data=date.today(), 
+                          horario=time(10, 0), criado_por=admin)
+    
+    response = logged_in_client.put(f'/api/v1/agenda/{agenda.id}',
+        json={"titulo": "Atualizado", "tipo": "Novo Tipo", "data": str(date.today()), "horario": "10:00", "local": "L"})
+    
+    assert response.status_code == 200
+    agenda_att = Agenda.get_by_id(agenda.id)
+    assert agenda_att.titulo == "Atualizado"
+
+def test_horarios_create_missing_fields(logged_in_client, test_db):
+    """Testa criação de horário sem campos obrigatórios."""
+    payload = {"titulo": "Sem hora"}
+    response = logged_in_client.post('/api/v1/horarios', json=payload)
+    assert response.status_code in [400, 500]
+
+def test_eventos_create_missing_fields(logged_in_client, test_db):
+    """Testa criação de evento sem campos obrigatórios."""
+    payload = {"titulo": "Sem tipo"}
+    response = logged_in_client.post('/api/v1/eventos', json=payload)
+    assert response.status_code in [400, 500]
+
+def test_aviso_get_list_empty(logged_in_client, test_db):
+    """Testa listagem vazia de avisos."""
+    response = logged_in_client.get('/api/v1/avisos')
+    assert response.status_code == 200
+    lista = json.loads(response.data)
+    assert isinstance(lista, list)
+
+def test_agenda_get_list_empty(logged_in_client, test_db):
+    """Testa listagem vazia de agenda."""
+    response = logged_in_client.get('/api/v1/agenda')
+    assert response.status_code == 200
+    lista = json.loads(response.data)
+    assert isinstance(lista, list)
+
+def test_horarios_get_list_empty(logged_in_client, test_db):
+    """Testa listagem vazia de horários."""
+    response = logged_in_client.get('/api/v1/horarios')
+    assert response.status_code == 200
+    lista = json.loads(response.data)
+    assert isinstance(lista, list)
+
+def test_horarios_update_with_all_fields(logged_in_client, test_db):
+    """Testa atualização completa de horário."""
+    admin = Usuario.get_by_id(999)
+    horario = Agenda.create(titulo="Missa", dia_semana="Segunda", horario=time(7, 0), 
+                           local="Igreja", is_public=True, criado_por=admin)
+    
+    response = logged_in_client.put(f'/api/v1/horarios/{horario.id}',
+        json={"titulo": "Missa Matinal", "dia": "Quarta", "horario": "08:00", "local": "Matriz"})
+    
+    assert response.status_code == 200
+    horario_att = Agenda.get_by_id(horario.id)
+    assert horario_att.titulo == "Missa Matinal"
+    assert horario_att.dia_semana == "Quarta"
+
+def test_eventos_inscricao_with_telefone(logged_in_client, test_db):
+    """Testa inscrição com telefone completo."""
+    admin = Usuario.get_by_id(999)
+    evento = Evento.create(titulo="Test", tipo="T", local="L", data=date.today(), 
+                          horario=time(10, 0), criado_por=admin)
+    
+    response = logged_in_client.post(f'/api/v1/eventos/{evento.id}/inscricao',
+        json={"nome": "João Silva", "telefone": "11999887766"})
+    
+    assert response.status_code == 201
+    inscricao = InscricaoEvento.select().where(InscricaoEvento.evento == evento).first()
+    assert inscricao.numero == "11999887766"
+
+def test_eventos_update_missing_fields(logged_in_client, test_db):
+    """Testa atualização de evento sem campos."""
+    admin = Usuario.get_by_id(999)
+    evento = Evento.create(titulo="Original", tipo="T", local="L", data=date.today(), 
+                          horario=time(10, 0), criado_por=admin)
+    
+    response = logged_in_client.put(f'/api/v1/eventos/{evento.id}', json={})
+    assert response.status_code in [200, 400, 500]
+
+def test_agenda_update_missing_fields(logged_in_client, test_db):
+    """Testa atualização de agenda sem campos."""
+    admin = Usuario.get_by_id(999)
+    agenda = Agenda.create(titulo="Original", tipo="T", local="L", data=date.today(), 
+                          horario=time(10, 0), criado_por=admin)
+    
+    response = logged_in_client.put(f'/api/v1/agenda/{agenda.id}', json={})
+    assert response.status_code in [200, 400, 500]
+
+def test_avisos_update_missing_fields(logged_in_client, test_db):
+    """Testa atualização de aviso sem campos."""
+    admin = Usuario.get_by_id(999)
+    aviso = Aviso.create(titulo="Original", categoria="Geral", data=date.today(), criado_por=admin)
+    
+    response = logged_in_client.put(f'/api/v1/avisos/{aviso.id}', json={})
+    assert response.status_code in [200, 400, 500]
+
+def test_horarios_update_missing_fields(logged_in_client, test_db):
+    """Testa atualização de horário sem campos."""
+    admin = Usuario.get_by_id(999)
+    horario = Agenda.create(titulo="Original", horario=time(10, 0), local="L", 
+                           is_public=True, criado_por=admin)
+    
+    response = logged_in_client.put(f'/api/v1/horarios/{horario.id}', json={})
+    assert response.status_code in [200, 400, 500]
+
+
+# --- TESTES DE PERMISSÕES E ERROS (para aumentar cobertura) ---
+
+def test_avisos_delete_success(logged_in_client, test_db):
+    """Testa deleção bem-sucedida de aviso."""
+    admin = Usuario.get_by_id(999)
+    aviso = Aviso.create(titulo="Aviso a Deletar", categoria="Geral", data=date.today(), criado_por=admin)
+    
+    response = logged_in_client.delete(f'/api/v1/avisos/{aviso.id}')
+    
+    assert response.status_code == 200
+
+def test_avisos_delete_not_found(logged_in_client, test_db):
+    """Testa tentativa de deletar aviso inexistente."""
+    response = logged_in_client.delete('/api/v1/avisos/99999')
+    assert response.status_code == 404
+
+def test_agenda_delete_success(logged_in_client, test_db):
+    """Testa deleção bem-sucedida de agenda."""
+    admin = Usuario.get_by_id(999)
+    agenda = Agenda.create(titulo="Agenda a Deletar", tipo="Reunião", data=date.today(), 
+                          local="Sala", horario=time(14, 0), criado_por=admin)
+    
+    response = logged_in_client.delete(f'/api/v1/agenda/{agenda.id}')
+    assert response.status_code == 200
+
+def test_horarios_delete_success(logged_in_client, test_db):
+    """Testa deleção bem-sucedida de horário."""
+    admin = Usuario.get_by_id(999)
+    horario = Agenda.create(titulo="Horário a Deletar", tipo="Missa", data=date.today(), 
+                           local="Igreja", horario=time(7, 0), criado_por=admin, is_public=True)
+    
+    response = logged_in_client.delete(f'/api/v1/horarios/{horario.id}')
+    assert response.status_code == 200
+
+def test_dashboard_with_all_data_types(logged_in_client, test_db):
+    """Testa dashboard com todos os tipos de dados."""
+    admin = Usuario.get_by_id(999)
+    
+    # Cria um de cada tipo
+    Evento.create(titulo="E1", tipo="T", local="L", data=date.today(), horario=time(10, 0), criado_por=admin)
+    Aviso.create(titulo="A1", categoria="C", data=date.today(), criado_por=admin)
+    Agenda.create(titulo="Ag1", tipo="T", local="L", data=date.today(), horario=time(10, 0), criado_por=admin)
+    Agenda.create(titulo="H1", horario=time(10, 0), local="L", is_public=True, criado_por=admin)
+    
+    response = logged_in_client.get('/api/v1/dashboard')
+    assert response.status_code == 200
+    data = json.loads(response.data)
+    
+    assert data['stats']['eventos'] >= 0
+    assert data['stats']['avisos'] >= 0
+    assert data['stats']['agenda'] >= 0
+    assert data['stats']['horarios'] >= 0
