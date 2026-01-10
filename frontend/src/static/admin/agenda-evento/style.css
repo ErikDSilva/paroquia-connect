@@ -1,13 +1,4 @@
-/* Variáveis de cores (ajuste conforme seu tema, assumindo padrões claros) */
-:root {
-  --background: #f0f4f8; /* Cor de fundo levemente azulada/cinza */
-  --foreground: #1e293b; /* Cor principal do texto (slate-800) */
-  --muted-foreground: #64748b; /* Cor secundária (slate-500) */
-  --card-background: white;
-  --border-color: #e2e8f0; /* slate-200 */
-  --destructive-color: #ef4444; /* red-500 */
-  --shadow-color: rgba(0, 0, 0, 0.05);
-}
+
 
 /* Estilos de Página e Layout */
 .admin-agenda-page {
