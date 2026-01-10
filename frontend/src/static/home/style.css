@@ -10,6 +10,7 @@
     --accent: #002366;  
     --accent-light: #f1f3f5; /* Cinza clarinho para fundos */
     --accent-hsl: 210, 80%, 30%;
+    --accent-foreground: #f1f3f5;
     
     --muted-foreground: #415065;
     --text-main: #2c3e50;
