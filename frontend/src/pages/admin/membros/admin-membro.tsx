@@ -258,7 +258,7 @@ const AdminMembros = () => {
             <main className="container mx-auto px-4 py-8">
                 <div className="mb-8">
                     <h1 className="text-4xl font-bold text-foreground mb-2">Gerenciamento de Administradores</h1>
-                    <p className="text-muted-foreground">Adicione e gerencie usuários com acesso de administrador.</p>
+                    
                 </div>
 
                 {/* --- Card de Edição de Administrador (NOVO) --- */}
