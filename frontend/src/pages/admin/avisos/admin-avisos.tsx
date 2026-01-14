@@ -26,6 +26,15 @@ interface Aviso {
   criado_por_id: number | null;
 }
 
+const getLocalISODate = (date: Date): string => {
+  const offset = date.getTimezoneOffset() * 60000; // offset em ms
+  const localTime = new Date(date.getTime() - offset);
+  return localTime.toISOString().split('T')[0];
+}
+
+// Obter a data de hoje no formato YYYY-MM-DD para o atributo 'min' do input
+const todayDateString = getLocalISODate(new Date());
+
 const AdminAvisos = () => {
   const { toast } = useToast();
   const { user } = useAuth();
@@ -257,6 +266,7 @@ const AdminAvisos = () => {
                         <Input
                           id="notice-date"
                           type="date"
+                          min={!editingId ? todayDateString : undefined}
                           value={formData.data}
                           onChange={(e) => setFormData({ ...formData, data: e.target.value })}
                         />

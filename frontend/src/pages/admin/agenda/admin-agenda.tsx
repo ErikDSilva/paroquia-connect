@@ -52,6 +52,15 @@ const AdminAgenda = () => {
     descricao: ""
   });
 
+  const getLocalISODate = (date: Date): string => {
+    const offset = date.getTimezoneOffset() * 60000; // offset em ms
+    const localTime = new Date(date.getTime() - offset);
+    return localTime.toISOString().split('T')[0];
+  }
+
+  // Obter a data de hoje no formato YYYY-MM-DD para o atributo 'min' do input
+  const todayDateString = getLocalISODate(new Date());
+
   const resetForm = () => {
     setFormData({ titulo: "", tipo: "", data: "", local: "", horario: "", descricao: "" });
     setEditingId(null);
@@ -169,7 +178,7 @@ const AdminAgenda = () => {
                   {/* ... CONTEUDO DO DIALOG (Mantido igual ao seu original) ... */}
                   <DialogContent className="dialog-content-lg">
                       <DialogHeader>
-                        <DialogTitle>{editingId ? "Editar Evento" : "Novo Evento"}</DialogTitle>
+                        <DialogTitle>{editingId ? "Editar Agendamento" : "Novo Agendamento"}</DialogTitle>
                         <DialogDescription>Preencha os detalhes abaixo.</DialogDescription>
                       </DialogHeader>
                       <div className="dialog-body">
@@ -190,7 +199,7 @@ const AdminAgenda = () => {
                             <div className="form-group"><Label>Local</Label><Input value={formData.local} onChange={e => setFormData({...formData, local: e.target.value})} /></div>
                          </div>
                          <div className="form-row">
-                            <div className="form-group"><Label>Data</Label><Input type="date" value={formData.data} onChange={e => setFormData({...formData, data: e.target.value})} /></div>
+                            <div className="form-group"><Label>Data</Label><Input type="date" min={!editingId ? todayDateString : undefined} value={formData.data} onChange={e => setFormData({...formData, data: e.target.value})} /></div>
                             <div className="form-group"><Label>Horário</Label><Input type="time" value={formData.horario} onChange={e => setFormData({...formData, horario: e.target.value})} /></div>
                          </div>
                          <div className="form-group"><Label>Descrição</Label><Textarea value={formData.descricao} onChange={e => setFormData({...formData, descricao: e.target.value})} /></div>
