@@ -115,7 +115,7 @@ const AdminAgenda = () => {
   };
 
   const handleDeleteEvent = async (id: number) => {
-    if (!confirm("Excluir evento?")) return;
+    if (!confirm("Excluir agenda?")) return;
     try {
       const res = await fetch(`http://localhost:5000/api/v1/agenda/${id}`, { method: 'DELETE', credentials: "include" });
       if (res.ok) { fetchEventos(); }
@@ -169,7 +169,7 @@ const AdminAgenda = () => {
                   {/* ... CONTEUDO DO DIALOG (Mantido igual ao seu original) ... */}
                   <DialogContent className="dialog-content-lg">
                       <DialogHeader>
-                        <DialogTitle>{editingId ? "Editar Evento" : "Novo Evento"}</DialogTitle>
+                        <DialogTitle>{editingId ? "Editar Agenda" : "Novo Agendamento"}</DialogTitle>
                         <DialogDescription>Preencha os detalhes abaixo.</DialogDescription>
                       </DialogHeader>
                       <div className="dialog-body">

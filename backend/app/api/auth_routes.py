@@ -1,3 +1,5 @@
+import requests
+import os
 from flask import Blueprint, request, jsonify
 from flask_login import login_user, logout_user, login_required, current_user
 from playhouse.shortcuts import model_to_dict
@@ -41,6 +43,37 @@ def register():
 @auth_bp.route('/login', methods=['POST'])
 def login():
     data = request.json
+    
+    # 1. VALIDAÇÃO DO RECAPTCHA
+    recaptcha_token = data.get('recaptchaToken')
+    
+    if not recaptcha_token:
+        return jsonify({"error": "Validação de segurança (reCAPTCHA) obrigatória."}), 400
+
+    # Pegue a SECRET KEY do seu .env
+    recaptcha_secret = os.getenv('RECAPTCHA_SECRET_KEY') 
+    
+    if not recaptcha_secret:
+         return jsonify({"error": "Erro de configuração no servidor (Secret Key)."}), 500
+
+    # Verifica com o Google
+    verify_response = requests.post(
+        'https://www.google.com/recaptcha/api/siteverify',
+        data={
+            'secret': recaptcha_secret,
+            'response': recaptcha_token
+        }
+    )
+    
+    google_result = verify_response.json()
+    
+    if not google_result.get('success'):
+        return jsonify({"error": "Falha na verificação de robô. Tente novamente."}), 400
+    
+    # ===============================================
+    # 2. LÓGICA ORIGINAL DE LOGIN (Se passou pelo robô)
+    # ===============================================
+    
     email = data.get('email')
     senha = data.get('senha')
 
