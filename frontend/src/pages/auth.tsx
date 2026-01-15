@@ -1,12 +1,15 @@
-import { useState } from "react";
+import { useState, useRef } from "react"; // Adicionado useRef
 import { useAuth } from "@/context/AuthContext";
 import { useNavigate } from "react-router-dom";
-// Componentes importados (mantidos)
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Eye, EyeOff } from "lucide-react"; 
-import "@/static/auth/style.css"; // Estilos
+import ReCAPTCHA from "react-google-recaptcha"; // Import do componente
+
+import "@/static/auth/style.css"; 
+
+const RECAPTCHA_SITE_KEY = "6LdY90osAAAAANCFZOABYhw12VGgc3Pu3k0QfDyA"; 
 
 const Auth = () => {
   const { login } = useAuth();
@@ -15,6 +18,10 @@ const Auth = () => {
   // Login States
   const [loginEmail, setLoginEmail] = useState("");
   const [loginPass, setLoginPass] = useState("");
+  
+  // States do Recaptcha
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
+  const captchaRef = useRef<ReCAPTCHA>(null);
 
   // Controle de visibilidade da senha
   const [showLoginPass, setShowLoginPass] = useState(false);
@@ -22,37 +29,54 @@ const Auth = () => {
   // Estado para feedback visual do Login
   const [loginFeedback, setLoginFeedback] = useState<{ type: 'success' | 'error', message: string } | null>(null);
 
-  // REMOVIDA A LÓGICA DE CADASTRO E VERIFICAÇÃO
+  const onCaptchaChange = (token: string | null) => {
+    setCaptchaToken(token);
+  };
 
   const handleLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoginFeedback(null);
+
+    // 1. Validação Visual do Captcha
+    if (!captchaToken) {
+        setLoginFeedback({ type: 'error', message: "Por favor, confirme que você não é um robô." });
+        return;
+    }
 
     try {
       const res = await fetch("http://localhost:5000/api/v1/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: 'include',
-        body: JSON.stringify({ email: loginEmail, senha: loginPass })
+        body: JSON.stringify({ 
+            email: loginEmail, 
+            senha: loginPass,
+            recaptchaToken: captchaToken // Enviando o token
+        })
       });
 
       const data = await res.json();
 
       if (res.ok) {
-        // Assume que qualquer login bem-sucedido é de um administrador
         login(data.user); 
-        setLoginFeedback({ type: 'success', message: "Login realizado com sucesso! Redirecionando para a administração..." });
+        setLoginFeedback({ type: 'success', message: "Login realizado com sucesso! Redirecionando..." });
 
         setTimeout(() => {
-          // REDIRECIONAMENTO DIRETO PARA A ÁREA ADMINISTRATIVA
           navigate("/admin"); 
         }, 1000);
 
       } else {
         setLoginFeedback({ type: 'error', message: data.error || "Credenciais inválidas." });
+        
+        // Se a senha estiver errada, resetamos o captcha para o usuário tentar de novo
+        captchaRef.current?.reset();
+        setCaptchaToken(null);
       }
     } catch (error) {
       setLoginFeedback({ type: 'error', message: "Erro de conexão com o servidor." });
+      // Reseta em caso de erro de rede também
+      captchaRef.current?.reset();
+      setCaptchaToken(null);
     }
   };
 
@@ -67,10 +91,9 @@ const Auth = () => {
                 <span className="logo-text">P</span>
               </div>
               <h1 className="title">Bem-vindo</h1>
-              <p className="subtitle">Acesse o painel administrativo</p> {/* Texto ajustado */}
+              <p className="subtitle">Acesse o painel administrativo</p>
             </div>
 
-            {/* O formulário de Login permanece o mesmo */}
             <form className="form-stack" onSubmit={handleLoginSubmit}>
               
               {loginFeedback && (
@@ -121,6 +144,15 @@ const Auth = () => {
                     {showLoginPass ? <EyeOff size={20} /> : <Eye size={20} />}
                   </button>
                 </div>
+              </div>
+
+              {/* RECAPTCHA ADICIONADO AQUI */}
+              <div className="flex justify-center my-4">
+                <ReCAPTCHA
+                    ref={captchaRef}
+                    sitekey={RECAPTCHA_SITE_KEY}
+                    onChange={onCaptchaChange}
+                />
               </div>
 
               <Button type="submit" className="btn-primary" size="lg">

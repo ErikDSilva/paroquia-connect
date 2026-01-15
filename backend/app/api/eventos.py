@@ -1,3 +1,5 @@
+import requests # <--- ADICIONADO: Para falar com o Google
+import os
 from flask import request, jsonify
 from . import api_bp
 from ..models.eventos import Evento;
@@ -124,25 +126,56 @@ def delete_evento(id):
 def create_inscricao(evento_id):
     data = request.json
     
-    # 1. Validação dos dados
+    # ======================================================================
+    # 1. VALIDAÇÃO DO RECAPTCHA (Adicionado)
+    # ======================================================================
+    recaptcha_token = data.get('recaptchaToken')
+    if not recaptcha_token:
+        return jsonify({"error": "Validação de segurança (reCAPTCHA) ausente."}), 400
+    
+    # Pega a chave secreta do arquivo .env (Certifique-se de ter adicionado lá)
+    recaptcha_secret = os.getenv('RECAPTCHA_SECRET_KEY') 
+    
+    if not recaptcha_secret:
+        # Log de erro para o desenvolvedor saber que esqueceu a config
+        print("ERRO: RECAPTCHA_SECRET_KEY não configurada no .env")
+        return jsonify({"error": "Erro de configuração no servidor."}), 500
+
+    # Verifica o token com o Google
+    verify_response = requests.post(
+        'https://www.google.com/recaptcha/api/siteverify',
+        data={
+            'secret': recaptcha_secret,
+            'response': recaptcha_token
+        }
+    )
+    
+    google_result = verify_response.json()
+    
+    if not google_result.get('success'):
+        return jsonify({"error": "Falha na verificação de segurança. Tente novamente."}), 400
+    # ======================================================================
+
+
+    # 2. Validação dos dados do formulário
     if not data or not data.get('nome') or not data.get('telefone'):
         return jsonify({"error": "Nome e Telefone são obrigatórios para a inscrição."}), 400
 
     try:
-        # 2. Verifica se o evento existe
+        # 3. Verifica se o evento existe
         evento = Evento.get_or_none(Evento.id == evento_id)
         if not evento:
             return jsonify({"error": "Evento não encontrado para inscrição."}), 404
             
-        # 3. Verifica limite de vagas (se for limitado)
+        # 4. Verifica limite de vagas (se for limitado)
         if evento.tipo_vagas == 'limitada' and evento.numero_vagas is not None:
-            # Conta as inscrições existentes (IMPORTANTE: Você deve criar a contagem no modelo)
+            # Conta as inscrições existentes
             total_inscritos = InscricaoEvento.select().where(InscricaoEvento.evento == evento).count()
             
             if total_inscritos >= evento.numero_vagas:
                 return jsonify({"error": "As vagas para este evento já estão esgotadas."}), 403
 
-        # 4. Cria a inscrição no banco
+        # 5. Cria a inscrição no banco
         InscricaoEvento.create(
             nome=data.get('nome'),
             numero=data.get('telefone'), # O seu modelo chama o campo de telefone de 'numero'
