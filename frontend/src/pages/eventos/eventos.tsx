@@ -3,14 +3,19 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label"; // Importe o Label
+import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Search, Calendar, MapPin, Users } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react"; // Adicionado useRef
+import ReCAPTCHA from "react-google-recaptcha" // Adicionado Import do ReCAPTCHA
 
 import '@/static/eventos/style.css';
 
-// Definição da tipagem baseada no que o Frontend espera
+// Coloque sua Site Key aqui (a pública)
+
+declare module 'react-google-recaptcha';
+const RECAPTCHA_SITE_KEY = "6LdY90osAAAAANCFZOABYhw12VGgc3Pu3k0QfDyA"; 
+
 type EventoUI = {
   id: number;
   title: string;
@@ -30,14 +35,16 @@ const Eventos = () => {
   // --- NOVOS ESTADOS PARA A INSCRIÇÃO ---
   const [selectedEvent, setSelectedEvent] = useState<EventoUI | null>(null);
   const [subForm, setSubForm] = useState({ nome: "", telefone: "" });
+  
+  // --- ESTADOS DO RECAPTCHA ---
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
+  const captchaRef = useRef<ReCAPTCHA>(null);
 
   // estado para termos de busca
   const [searchTerm, setSearchTerm] = useState("");
 
-  // Array de categorias para os botões de filtro
   const categories = ["TODOS", "FORMAÇÃO", "ESPIRITUALIDADE", "FESTIVIDADE", "AÇÃO SOCIAL", "ADMINISTRATIVO"];
 
-  // Função auxiliar para converter o 'tipo' do banco para a 'category' da UI
   const mapCategoryName = (backendType: string) => {
     const map: Record<string, string> = {
       'formacao': 'FORMAÇÃO',
@@ -49,7 +56,6 @@ const Eventos = () => {
     return map[backendType] || 'OUTROS';
   };
 
-  // Função auxiliar para formatar a data (YYYY-MM-DD -> DD/MM/YYYY)
   const formatDate = (dateString: string) => {
     if (!dateString) return "";
     const date = new Date(dateString);
@@ -87,48 +93,55 @@ const fetchEventos = async () => {
   }, []);
 
   const filteredEventos = events.filter(e => {
-    // Filtro por Categoria
     const matchesCategory = filter === "TODOS" || e.category === filter;
-
-    // Prepara o Termo de Busca
     const lowerCaseSearchTerm = searchTerm.toLowerCase().trim();
 
     if (!lowerCaseSearchTerm) {
-      // Se não houver termo de busca, apenas retorna o resultado da categoria
       return matchesCategory;
     }
 
-    // Filtro por Termo de Busca (Título ou Descrição)
     const matchesSearch =
-      e.title.toLowerCase().includes(lowerCaseSearchTerm) || // Busca por Título
-      e.description.toLowerCase().includes(lowerCaseSearchTerm); // Busca por Descrição
+      e.title.toLowerCase().includes(lowerCaseSearchTerm) ||
+      e.description.toLowerCase().includes(lowerCaseSearchTerm);
 
-    // O evento deve satisfazer AMBOS os filtros (Categoria E Busca)
     return matchesCategory && matchesSearch;
   });
 
   // --- FUNÇÕES DE MANIPULAÇÃO DO MODAL ---
 
-  // Abre o modal e limpa o formulário anterior
   const handleOpenSubscribe = (evento: EventoUI) => {
     setSelectedEvent(evento);
     setSubForm({ nome: "", telefone: "" });
+    setCaptchaToken(null); // Reseta o token ao abrir
+    // Pequeno delay para garantir que o modal renderizou antes de resetar o componente visual
+    setTimeout(() => {
+        captchaRef.current?.reset();
+    }, 100);
   };
 
-  // Fecha o modal
   const handleCloseSubscribe = () => {
     setSelectedEvent(null);
+    setCaptchaToken(null);
   };
 
-  // Simula o envio da inscrição
+  // Função chamada quando o usuário clica no "Não sou um robô"
+  const onCaptchaChange = (token: string | null) => {
+    setCaptchaToken(token);
+  };
+
   const handleSubmitSubscription = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!selectedEvent) return;
 
+    // Validação do Captcha no Frontend
+    if (!captchaToken) {
+        alert("Por favor, confirme que você não é um robô.");
+        return;
+    }
+
     try {
       const response = await fetch(
-        // Chamando a nova rota com o ID do evento na URL
         `http://localhost:5000/api/v1/eventos/${selectedEvent.id}/inscricao`,
         {
           method: 'POST',
@@ -137,7 +150,8 @@ const fetchEventos = async () => {
           },
           body: JSON.stringify({
             nome: subForm.nome,
-            telefone: subForm.telefone, // Enviando 'telefone' para o backend
+            telefone: subForm.telefone,
+            recaptchaToken: captchaToken, // ENVIANDO O TOKEN PARA O BACKEND
           }),
         }
       );
@@ -145,7 +159,6 @@ const fetchEventos = async () => {
       const data = await response.json();
 
       if (response.ok) {
-        // Sucesso (código 201)
         alert(`Inscrição realizada com sucesso para: ${selectedEvent.title}!`);
         handleCloseSubscribe();
         // Opcional: Recarregar a lista de eventos se a contagem de vagas for importante
@@ -153,12 +166,14 @@ const fetchEventos = async () => {
 
         await fetchEventos();
       } else {
-        // Erro (Ex: 400, 403 - vagas esgotadas, 404)
         alert(`Falha na inscrição: ${data.error || 'Erro desconhecido.'}`);
+        // Se der erro, reseta o captcha para o usuário tentar de novo
+        captchaRef.current?.reset();
+        setCaptchaToken(null);
       }
     } catch (error) {
       console.error("Erro de conexão ao inscrever:", error);
-      alert("Erro de rede. Não foi possível conectar ao servidor para a inscrição.");
+      alert("Erro de rede. Não foi possível conectar ao servidor.");
     }
   };
 
@@ -173,7 +188,6 @@ const fetchEventos = async () => {
             <p className="page-description">Confira todos os eventos e atividades da paróquia</p>
           </div>
 
-          {/* Search Bar */}
           <div className="search-bar-wrapper">
             <Search className="search-icon" />
             <Input
@@ -184,7 +198,6 @@ const fetchEventos = async () => {
             />
           </div>
 
-          {/* Category Filters */}
           <div className="category-filters">
             {categories.map((cat) => (
               <Button
@@ -200,7 +213,6 @@ const fetchEventos = async () => {
             ))}
           </div>
 
-          {/* Events Grid */}
           <div className="events-grid">
             {filteredEventos.length > 0 ? (
               filteredEventos.map((evento) => (
@@ -281,6 +293,16 @@ const fetchEventos = async () => {
                 required
               />
             </div>
+
+            {/* --- ADIÇÃO DO RECAPTCHA --- */}
+            <div className="flex justify-center my-2">
+                <ReCAPTCHA
+                    ref={captchaRef}
+                    sitekey={RECAPTCHA_SITE_KEY}
+                    onChange={onCaptchaChange}
+                />
+            </div>
+
             <DialogFooter>
               <Button type="button" variant="outline" onClick={handleCloseSubscribe}>
                 Cancelar
