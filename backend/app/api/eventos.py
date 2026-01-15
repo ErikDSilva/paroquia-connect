@@ -44,8 +44,8 @@ def get_eventos():
         
         lista_eventos = []
         for e in eventos:
+            total = InscricaoEvento.select().where(InscricaoEvento.evento == e.id).count()
             # Realiza a contagem de inscritos para cada evento
-            total_inscritos = e.inscricoes.count() 
 
             lista_eventos.append({
                 "id": e.id,
@@ -57,7 +57,7 @@ def get_eventos():
                 "data": str(e.data), 
                 "horario": str(e.horario),
                 "descricao": e.descricao,
-                "registered_count": total_inscritos, # <<< CAMPO NOVO COM A CONTAGEM
+                "registered_count": total, # <<< CAMPO NOVO COM A CONTAGEM
                 "criado_por": e.criado_por.idusuario if e.criado_por else None
             })
             
