@@ -25,6 +25,7 @@ type EventoUI = {
   location: string;
   category: string;
   spots: number | null;
+  registred: number ;
 };
 
 const Eventos = () => {
@@ -61,31 +62,33 @@ const Eventos = () => {
     return date.toLocaleDateString('pt-BR', { timeZone: 'UTC' });
   };
 
-  useEffect(() => {
-    const fetchEventos = async () => {
-      try {
-        const response = await fetch('http://localhost:5000/api/v1/eventos');
-        if (response.ok) {
-          const data = await response.json();
+const fetchEventos = async () => {
+  try {
+    const response = await fetch('http://localhost:5000/api/v1/eventos');
+    if (response.ok) {
+      const data = await response.json();
 
-          const mappedEvents: EventoUI[] = data.map((evt: any) => ({
-            id: evt.id,
-            title: evt.titulo,
-            description: evt.descricao,
-            date: formatDate(evt.data),
-            time: evt.horario,
-            location: evt.local,
-            category: mapCategoryName(evt.tipo),
-            spots: evt.numero_vagas
-          }));
+      const mappedEvents: EventoUI[] = data.map((evt: any) => ({
+        id: evt.id,
+        title: evt.titulo,
+        description: evt.descricao,
+        date: formatDate(evt.data),
+        time: evt.horario,
+        location: evt.local,
+        category: mapCategoryName(evt.tipo),
+        spots: evt.numero_vagas,
+        registred: evt.registered_count
+      }));
 
-          setEvents(mappedEvents);
+      setEvents(mappedEvents);
         }
-      } catch (error) {
-        console.error("Erro ao carregar eventos:", error);
-      }
-    };
+  } catch (error) {
+    console.error("Erro ao carregar eventos:", error);
+  }
+};
 
+  // Busca os dados do Backend
+  useEffect(() => {
     fetchEventos();
   }, []);
 
@@ -158,6 +161,10 @@ const Eventos = () => {
       if (response.ok) {
         alert(`Inscrição realizada com sucesso para: ${selectedEvent.title}!`);
         handleCloseSubscribe();
+        // Opcional: Recarregar a lista de eventos se a contagem de vagas for importante
+        // fetchEventos(); 
+
+        await fetchEventos();
       } else {
         alert(`Falha na inscrição: ${data.error || 'Erro desconhecido.'}`);
         // Se der erro, reseta o captcha para o usuário tentar de novo
@@ -230,7 +237,10 @@ const Eventos = () => {
                     {evento.spots !== null && (
                       <div className="event-detail-item">
                         <Users className="event-detail-icon" />
-                        <span>{evento.spots} vagas disponíveis</span>
+                        <span>
+                          {evento.registred} / {evento.spots} vagas preenchidas
+                          {evento.registred >= evento.spots && (<Badge variant="destructive" className="ml-2">LOTADO</Badge>)}
+                          </span>
                       </div>
                     )}
                   </div>
