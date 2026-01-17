@@ -76,4 +76,6 @@ def get_dashboard_data():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
     
-    
+@api_bp.route('/hello', methods=['GET'])
+def hello_dashboard():
+    return jsonify({"message": "Hello from Dashboard API!"}), 200

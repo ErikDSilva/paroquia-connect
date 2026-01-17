@@ -1,4 +1,4 @@
-from flask import Flask, jsonify
+from flask import Flask, app, jsonify
 from flask_cors import CORS
 from .config import Config
 from .models.config import db
@@ -19,10 +19,14 @@ def create_app(config_class=Config):
 
     # Configuração do CORS
     CORS(app, resources={
-            r"/api/*": {
-                "origins": ["http://localhost:5173"] 
-            }
-        }, supports_credentials=True)
+        r"/api/*": {
+            "origins": [
+                "http://localhost",          # Padrão
+                "http://127.0.0.1",          # Alternativa comum para localhost
+                "http://localhost:80",       # Explícito porta 80
+            ]
+        }
+}, supports_credentials=True)
 
     # 3. INICIAR O MAIL
     mail.init_app(app)
