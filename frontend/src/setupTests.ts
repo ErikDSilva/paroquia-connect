@@ -2,6 +2,7 @@ import '@testing-library/jest-dom/vitest'
 import { vi } from 'vitest'
 
 // Mock global fetch para todos os testes - retorna arrays vazios
+// @ts-ignore
 global.fetch = vi.fn((url: string) => {
   // Retornar dados apropriados baseado na URL
   let responseData: any = []

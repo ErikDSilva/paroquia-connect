@@ -1,0 +1,18 @@
+# Use a lightweight Python 3.12+ image for 2026
+FROM python:3.12-slim
+
+WORKDIR /backend
+
+# Install dependencies
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy application code
+COPY . .
+
+# Expose Flask's default port
+EXPOSE 5000
+
+# Run using 
+
+CMD ["flask", "run"]
