@@ -11,6 +11,9 @@ from flask_login import login_required, current_user
 # O prefixo /api/v1 já foi definido no create_app
 # Rota: http://localhost:5000/api/v1/data
 
+@api_bp.route('/teste', methods=['POST'])
+def test_route():
+    return jsonify({"message": "Rota de teste funcionando!"})
 
 # ROTA DE ENVIO DE E-MAIL
 @api_bp.route('/enviar-email', methods=['POST'])

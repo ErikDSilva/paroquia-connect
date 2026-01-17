@@ -1,13 +1,28 @@
 version: '3.8'
 
 services:
+  dcs-postgres:
+    container_name: dcs-postgres
+    image: postgres
+    environment:
+      POSTGRES_USER: root
+      POSTGRES_PASSWORD: root
+      POSTGRES_DB: paroquia
+    ports:
+      - "5432:5432"
+    # volumes:
+      # - pgdata:/var/lib/postgresql/data
+
   backend:
     build: 
       context: backend
       dockerfile: DockerFile
     ports:
       - "5000:5000"
-    command: flask run
+    environment:
+      DB_HOST: dcs-postgres
+    command: flask run --host=0.0.0.0
+    
 
   frontend:
     build: 

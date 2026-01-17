@@ -15,4 +15,4 @@ EXPOSE 5000
 
 # Run using 
 
-CMD ["flask", "run"]
+CMD ["sh", "-c", "python -m app.models.create_tables && flask run --host=0.0.0.0"]
