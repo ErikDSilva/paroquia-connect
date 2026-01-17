@@ -16,6 +16,9 @@ interface Aviso {
   url?: string;
 }
 
+const API_URL = import.meta.env.VITE_API_URL;
+
+
 const Avisos = () => {
   // Estado para armazenar os avisos vindos do banco
   const [avisos, setAvisos] = useState<Aviso[]>([]);
@@ -28,7 +31,7 @@ const Avisos = () => {
   useEffect(() => {
     const fetchAvisos = async () => {
       try {
-        const response = await fetch("http://localhost:5000/api/v1/avisos");
+        const response = await fetch(`${API_URL}/avisos`);
         if (response.ok) {
           const data = await response.json();
           setAvisos(data);

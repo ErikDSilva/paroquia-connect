@@ -13,10 +13,12 @@ import ReCAPTCHA from "react-google-recaptcha" // Adicionado Import do ReCAPTCHA
 
 import '@/static/eventos/style.css';
 
+const API_URL = import.meta.env.VITE_API_URL;
+
 // Coloque sua Site Key aqui (a pública)
 
 declare module 'react-google-recaptcha';
-const RECAPTCHA_SITE_KEY = "6LdY90osAAAAANCFZOABYhw12VGgc3Pu3k0QfDyA"; 
+const RECAPTCHA_SITE_KEY = "6LdY90osAAAAANCFZOABYhw12VGgc3Pu3k0QfDyA";
 
 type EventoUI = {
   id: number;
@@ -27,7 +29,7 @@ type EventoUI = {
   location: string;
   category: string;
   spots: number | null;
-  registred: number ;
+  registred: number;
 };
 
 const Eventos = () => {
@@ -39,10 +41,11 @@ const Eventos = () => {
   // --- NOVOS ESTADOS PARA A INSCRIÇÃO ---
   const [selectedEvent, setSelectedEvent] = useState<EventoUI | null>(null);
   const [subForm, setSubForm] = useState({ nome: "", telefone: "" });
-  
+
   // --- ESTADOS DO RECAPTCHA ---
   const [captchaToken, setCaptchaToken] = useState<string | null>(null);
   const captchaRef = useRef<ReCAPTCHA>(null);
+
 
   // estado para termos de busca
   const [searchTerm, setSearchTerm] = useState("");
@@ -66,30 +69,30 @@ const Eventos = () => {
     return date.toLocaleDateString('pt-BR', { timeZone: 'UTC' });
   };
 
-const fetchEventos = async () => {
-  try {
-    const response = await fetch('http://localhost:5000/api/v1/eventos');
-    if (response.ok) {
-      const data = await response.json();
+  const fetchEventos = async () => {
+    try {
+      const response = await fetch(`${API_URL}/eventos`);
+      if (response.ok) {
+        const data = await response.json();
 
-      const mappedEvents: EventoUI[] = data.map((evt: any) => ({
-        id: evt.id,
-        title: evt.titulo,
-        description: evt.descricao,
-        date: formatDate(evt.data),
-        time: evt.horario,
-        location: evt.local,
-        category: mapCategoryName(evt.tipo),
-        spots: evt.numero_vagas,
-        registred: evt.registered_count
-      }));
+        const mappedEvents: EventoUI[] = data.map((evt: any) => ({
+          id: evt.id,
+          title: evt.titulo,
+          description: evt.descricao,
+          date: formatDate(evt.data),
+          time: evt.horario,
+          location: evt.local,
+          category: mapCategoryName(evt.tipo),
+          spots: evt.numero_vagas,
+          registred: evt.registered_count
+        }));
 
-      setEvents(mappedEvents);
-        }
-  } catch (error) {
-    console.error("Erro ao carregar eventos:", error);
-  }
-};
+        setEvents(mappedEvents);
+      }
+    } catch (error) {
+      console.error("Erro ao carregar eventos:", error);
+    }
+  };
 
   // Busca os dados do Backend
   useEffect(() => {
@@ -119,7 +122,7 @@ const fetchEventos = async () => {
     setCaptchaToken(null); // Reseta o token ao abrir
     // Pequeno delay para garantir que o modal renderizou antes de resetar o componente visual
     setTimeout(() => {
-        captchaRef.current?.reset();
+      captchaRef.current?.reset();
     }, 100);
   };
 
@@ -150,7 +153,7 @@ const fetchEventos = async () => {
 
     try {
       const response = await fetch(
-        `http://localhost:5000/api/v1/eventos/${selectedEvent.id}/inscricao`,
+        `${API_URL}/eventos/${selectedEvent.id}/inscricao`,
         {
           method: 'POST',
           headers: {
@@ -172,9 +175,9 @@ const fetchEventos = async () => {
           title: "Inscrição Confirmada! 🎉",
           description: `Você foi inscrito no evento: ${selectedEvent.title}`,
           // Se tiver um estilo 'success' configurado no seu tema, use-o, senão o padrão serve
-          variant: "default", 
+          variant: "default",
         });
-        
+
         handleCloseSubscribe();
         await fetchEventos();
       } else {
@@ -184,7 +187,7 @@ const fetchEventos = async () => {
           title: "Falha na inscrição",
           description: data.error || 'Ocorreu um erro desconhecido.',
         });
-        
+
         captchaRef.current?.reset();
         setCaptchaToken(null);
       }
@@ -226,8 +229,8 @@ const fetchEventos = async () => {
                 key={cat}
                 onClick={() => setFilter(cat)}
                 className={`filter-button ${filter === cat
-                    ? "filter-button--active"
-                    : "filter-button--inactive"
+                  ? "filter-button--active"
+                  : "filter-button--inactive"
                   }`}
               >
                 {cat}
@@ -262,7 +265,7 @@ const fetchEventos = async () => {
                         <span>
                           {evento.registred} / {evento.spots} vagas preenchidas
                           {evento.registred >= evento.spots && (<Badge variant="destructive" className="ml-2">LOTADO</Badge>)}
-                          </span>
+                        </span>
                       </div>
                     )}
                   </div>
@@ -318,11 +321,11 @@ const fetchEventos = async () => {
 
             {/* --- ADIÇÃO DO RECAPTCHA --- */}
             <div className="flex justify-center my-2">
-                <ReCAPTCHA
-                    ref={captchaRef}
-                    sitekey={RECAPTCHA_SITE_KEY}
-                    onChange={onCaptchaChange}
-                />
+              <ReCAPTCHA
+                ref={captchaRef}
+                sitekey={RECAPTCHA_SITE_KEY}
+                onChange={onCaptchaChange}
+              />
             </div>
 
             <DialogFooter>

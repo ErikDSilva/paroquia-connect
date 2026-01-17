@@ -33,6 +33,8 @@ const diasSemana = [
   "Domingo"
 ];
 
+const API_URL = import.meta.env.VITE_API_URL;
+
 const AdminHorarios = () => {
   const { toast } = useToast();
   const [horarios, setHorarios] = useState<Horario[]>([]);
@@ -52,7 +54,7 @@ const AdminHorarios = () => {
   // 1. BUSCAR DADOS (GET)
   const fetchHorarios = async () => {
     try {
-      const response = await fetch("http://localhost:5000/api/v1/horarios");
+      const response = await fetch(`${API_URL}/horarios`);
       if (response.ok) {
         const data = await response.json();
         setHorarios(data);
@@ -83,8 +85,8 @@ const AdminHorarios = () => {
     try {
       const isEditing = editingHorario !== null;
       const url = isEditing
-        ? `http://localhost:5000/api/v1/horarios/${editingHorario.id}`
-        : "http://localhost:5000/api/v1/horarios";
+        ? `${API_URL}/horarios/${editingHorario.id}`
+        : `${API_URL}/horarios`;
 
       const method = isEditing ? "PUT" : "POST";
 
@@ -135,7 +137,7 @@ const AdminHorarios = () => {
     if (!confirm("Deseja realmente excluir este horário?")) return;
 
     try {
-      const response = await fetch(`http://localhost:5000/api/v1/horarios/${id}`, {
+      const response = await fetch(`${API_URL}/horarios/${id}`, {
         credentials: 'include',
         method: "DELETE"
       });

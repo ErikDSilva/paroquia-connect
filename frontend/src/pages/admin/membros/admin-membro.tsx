@@ -9,7 +9,8 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/context/AuthContext";
 
 // URL base já inclui o prefixo /api/v1/admin_management
-const API_BASE_URL = "http://localhost:5000/api/v1/admin_management";
+const API_URL = import.meta.env.VITE_API_URL;
+const API_BASE_URL = `${API_URL}/admin_management`;
 
 interface Admin {
     id: number;

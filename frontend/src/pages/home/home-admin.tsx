@@ -6,6 +6,8 @@ import { useAuth } from "@/context/AuthContext";
 
 import "@/static/home/home-admin.css";
 
+const API_URL = import.meta.env.VITE_API_URL;
+
 const Admin = () => {
   // Estado para armazenar os dados vindos do Python
   const [dashboardData, setDashboardData] = useState({
@@ -20,11 +22,12 @@ const Admin = () => {
 
   const [loading, setLoading] = useState(true);
 
+
   // Busca os dados assim que o componente monta
   useEffect(() => {
     const fetchDashboard = async () => {
       try {
-        const response = await fetch("http://localhost:5000/api/v1/dashboard", {
+        const response = await fetch(`${API_URL}/dashboard`, {
           credentials: 'include' // <--- OBRIGATÓRIO: Envia o cookie para o Flask
         });
         if (response.ok) {

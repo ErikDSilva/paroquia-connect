@@ -6,6 +6,8 @@ import { ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
 
 import "@/static/horarios/style.css";
 
+const API_URL = import.meta.env.VITE_API_URL;
+
 // Interface para o dado que vem da API
 interface HorarioApi {
   id: number;
@@ -37,6 +39,8 @@ const Horarios = () => {
   const [currentDay, setCurrentDay] = useState(getCurrentDayIndex());
   const [loading, setLoading] = useState(true);
   
+
+  
   // Estrutura base dos dias para garantir a ordem correta (Domingo a Sábado)
   const initialSchedule: DaySchedule[] = [
     { day: "Domingo", activities: [] },
@@ -53,7 +57,7 @@ const Horarios = () => {
   useEffect(() => {
     const fetchHorarios = async () => {
       try {
-        const response = await fetch("http://localhost:5000/api/v1/horarios");
+        const response = await fetch(`${API_URL}/horarios`);
         if (response.ok) {
           const data: HorarioApi[] = await response.json();
           
