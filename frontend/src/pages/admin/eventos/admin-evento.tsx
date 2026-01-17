@@ -313,7 +313,8 @@ const Eventos = () => {
           for (const event of pastEvents) {
             try {
               const deleteResponse = await fetch(`http://localhost:5000/api/v1/eventos/${event.id}`, {
-                method: 'DELETE'
+                method: 'DELETE',
+                credentials: 'include',
               });
 
               if (deleteResponse.ok) {

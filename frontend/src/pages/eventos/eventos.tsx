@@ -6,6 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Search, Calendar, MapPin, Users } from "lucide-react";
+import { useToast } from "@/components/ui/use-toast";
+import { Toaster } from "@/components/ui/toaster";
 import { useState, useEffect, useRef } from "react"; // Adicionado useRef
 import ReCAPTCHA from "react-google-recaptcha" // Adicionado Import do ReCAPTCHA
 
@@ -31,6 +33,8 @@ type EventoUI = {
 const Eventos = () => {
   const [filter, setFilter] = useState("TODOS");
   const [events, setEvents] = useState<EventoUI[]>([]);
+
+  const { toast } = useToast();
 
   // --- NOVOS ESTADOS PARA A INSCRIÇÃO ---
   const [selectedEvent, setSelectedEvent] = useState<EventoUI | null>(null);
@@ -134,10 +138,14 @@ const fetchEventos = async () => {
 
     if (!selectedEvent) return;
 
-    // Validação do Captcha no Frontend
+    // Validação do Captcha
     if (!captchaToken) {
-        alert("Por favor, confirme que você não é um robô.");
-        return;
+      toast({
+        variant: "destructive", // Vermelho para erro
+        title: "Validação necessária",
+        description: "Por favor, confirme que você não é um robô.",
+      });
+      return;
     }
 
     try {
@@ -151,7 +159,7 @@ const fetchEventos = async () => {
           body: JSON.stringify({
             nome: subForm.nome,
             telefone: subForm.telefone,
-            recaptchaToken: captchaToken, // ENVIANDO O TOKEN PARA O BACKEND
+            recaptchaToken: captchaToken,
           }),
         }
       );
@@ -159,21 +167,35 @@ const fetchEventos = async () => {
       const data = await response.json();
 
       if (response.ok) {
-        alert(`Inscrição realizada com sucesso para: ${selectedEvent.title}!`);
+        // SUCESSO
+        toast({
+          title: "Inscrição Confirmada! 🎉",
+          description: `Você foi inscrito no evento: ${selectedEvent.title}`,
+          // Se tiver um estilo 'success' configurado no seu tema, use-o, senão o padrão serve
+          variant: "default", 
+        });
+        
         handleCloseSubscribe();
-        // Opcional: Recarregar a lista de eventos se a contagem de vagas for importante
-        // fetchEventos(); 
-
         await fetchEventos();
       } else {
-        alert(`Falha na inscrição: ${data.error || 'Erro desconhecido.'}`);
-        // Se der erro, reseta o captcha para o usuário tentar de novo
+        // ERRO DO BACKEND
+        toast({
+          variant: "destructive",
+          title: "Falha na inscrição",
+          description: data.error || 'Ocorreu um erro desconhecido.',
+        });
+        
         captchaRef.current?.reset();
         setCaptchaToken(null);
       }
     } catch (error) {
       console.error("Erro de conexão ao inscrever:", error);
-      alert("Erro de rede. Não foi possível conectar ao servidor.");
+      // ERRO DE REDE
+      toast({
+        variant: "destructive",
+        title: "Erro de conexão",
+        description: "Não foi possível conectar ao servidor. Verifique sua internet.",
+      });
     }
   };
 
@@ -311,6 +333,7 @@ const fetchEventos = async () => {
             </DialogFooter>
           </form>
         </DialogContent>
+        <Toaster />
       </Dialog>
 
     </div>
