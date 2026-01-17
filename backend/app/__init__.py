@@ -23,6 +23,7 @@ def create_app(config_class=Config):
             "origins": [
                 "http://localhost",          # Padrão
                 "http://127.0.0.1",          # Alternativa comum para localhost
+                "http://3.144.84.225",
                 "http://localhost:80",       # Explícito porta 80
             ]
         }
