@@ -72,6 +72,8 @@ const isFormDateInPast = (formData: any): boolean => {
   return eventDateTime < now;
 };
 
+const API_URL = import.meta.env.VITE_API_URL;
+
 const Eventos = () => {
   const { toast } = useToast();
   const { user } = useAuth();
@@ -160,7 +162,7 @@ const Eventos = () => {
 
     try {
       // **ASSUME** que você tem uma rota no backend (ex: http://localhost:5000/api/v1/eventos/1/inscricoes)
-      const response = await fetch(`http://localhost:5000/api/v1/eventos/${eventId}/inscricoes`);
+      const response = await fetch(`${API_URL}/eventos/${eventId}/inscricoes`);
 
       if (response.ok) {
         const data: Inscricao[] = await response.json();
@@ -205,8 +207,8 @@ const Eventos = () => {
 
       // Define a URL e o Método baseado se estamos editando ou criando
       const url = editingId
-        ? `http://localhost:5000/api/v1/eventos/${editingId}`
-        : 'http://localhost:5000/api/v1/eventos';
+        ? `${API_URL}/eventos/${editingId}`
+        : `${API_URL}/eventos`;
 
       const method = editingId ? 'PUT' : 'POST';
 
@@ -258,7 +260,7 @@ const Eventos = () => {
     if (!confirm("Tem certeza que deseja excluir esta agenda?")) return;
 
     try {
-      const response = await fetch(`http://localhost:5000/api/v1/eventos/${eventId}`, {
+      const response = await fetch(`${API_URL}/eventos/${eventId}`, {
         method: 'DELETE',
         credentials: 'include',
       });
@@ -284,7 +286,7 @@ const Eventos = () => {
 
   const fetchEventos = async () => {
     try {
-      const response = await fetch('http://localhost:5000/api/v1/eventos'); // Vamos precisar criar essa rota no backend
+      const response = await fetch(`${API_URL}/eventos`); // Vamos precisar criar essa rota no backend
       if (response.ok) {
         const data = await response.json();
 
@@ -312,7 +314,7 @@ const Eventos = () => {
 
           for (const event of pastEvents) {
             try {
-              const deleteResponse = await fetch(`http://localhost:5000/api/v1/eventos/${event.id}`, {
+              const deleteResponse = await fetch(`${API_URL}/eventos/${event.id}`, {
                 method: 'DELETE',
                 credentials: 'include',
               });

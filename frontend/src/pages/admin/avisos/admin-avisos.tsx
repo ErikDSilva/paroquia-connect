@@ -15,6 +15,8 @@ import { useAuth } from "@/context/AuthContext";
 
 import "@/static/admin/avisos/style.css";
 
+const API_URL = import.meta.env.VITE_API_URL;
+
 // Interface atualizada
 interface Aviso {
   id: number;
@@ -56,7 +58,7 @@ const AdminAvisos = () => {
 
   const fetchAvisos = async () => {
     try {
-      const response = await fetch("http://localhost:5000/api/v1/avisos");
+      const response = await fetch(`${API_URL}/avisos`);
       if (response.ok) {
         const data = await response.json();
         setNotices(data);
@@ -128,8 +130,8 @@ const AdminAvisos = () => {
 
       // Define a URL e o Método com base no estado de edição
       const url = isEditing
-        ? `http://localhost:5000/api/v1/avisos/${editingId}`
-        : "http://localhost:5000/api/v1/avisos";
+        ? `${API_URL}/avisos/${editingId}`
+        : `${API_URL}/avisos`;
 
       const method = isEditing ? "PUT" : "POST";
 
@@ -162,7 +164,7 @@ const AdminAvisos = () => {
     if (!confirm("Tem certeza que deseja excluir este aviso?")) return;
 
     try {
-      const response = await fetch(`http://localhost:5000/api/v1/avisos/${noticeId}`, {
+      const response = await fetch(`${API_URL}/avisos/${noticeId}`, {
         method: "DELETE",
         credentials: "include",
       });

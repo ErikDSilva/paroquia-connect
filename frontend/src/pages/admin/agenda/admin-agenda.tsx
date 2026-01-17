@@ -13,6 +13,8 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/context/AuthContext";
 import "@/static/admin/agenda-evento/style.css"
 
+const API_URL = import.meta.env.VITE_API_URL;
+
 // Mapeamento de Cores por Tipo
 const getTypeColorClass = (type: string) => {
   const map: Record<string, string> = {
@@ -68,7 +70,7 @@ const AdminAgenda = () => {
 
   const fetchEventos = async () => {
     try {
-      const response = await fetch('http://localhost:5000/api/v1/agenda');
+      const response = await fetch(`${API_URL}/agenda`);
       const data = await response.json();
       const eventosFormatados = data.map((item: any) => ({
         id: item.id,
@@ -95,7 +97,7 @@ const AdminAgenda = () => {
       return;
     }
     try {
-      const url = editingId ? `http://localhost:5000/api/v1/agenda/${editingId}` : 'http://localhost:5000/api/v1/agenda';
+      const url = editingId ? `${API_URL}/agenda/${editingId}` : `${API_URL}/agenda`;
       const method = editingId ? 'PUT' : 'POST';
       const response = await fetch(url, {
         method, headers: { 'Content-Type': 'application/json' }, credentials: 'include', body: JSON.stringify(formData)
@@ -126,7 +128,7 @@ const AdminAgenda = () => {
   const handleDeleteEvent = async (id: number) => {
     if (!confirm("Excluir agenda?")) return;
     try {
-      const res = await fetch(`http://localhost:5000/api/v1/agenda/${id}`, { method: 'DELETE', credentials: "include" });
+      const res = await fetch(`${API_URL}/agenda/${id}`, { method: 'DELETE', credentials: "include" });
       if (res.ok) { fetchEventos(); }
     } catch (e) { console.error(e); }
   };

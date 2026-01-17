@@ -6,6 +6,8 @@ import { Calendar, Bell, Clock } from "lucide-react";
 
 import "@/static/home/style.css";
 
+const API_URL = import.meta.env.VITE_API_URL;
+
 // Interfaces para tipagem dos dados
 interface Evento {
   id: number;
@@ -27,13 +29,14 @@ function App() {
   const [avisos, setAvisos] = useState<Aviso[]>([]);
   const [loading, setLoading] = useState(true);
 
+
   useEffect(() => {
     const fetchData = async () => {
       try {
         // Faz as duas requisições simultaneamente
         const [resEventos, resAvisos] = await Promise.all([
-          fetch("http://localhost:5000/api/v1/eventos"),
-          fetch("http://localhost:5000/api/v1/avisos")
+          fetch(`${API_URL}/eventos`),
+          fetch(`${API_URL}/avisos`)
         ]);
 
         if (resEventos.ok && resAvisos.ok) {

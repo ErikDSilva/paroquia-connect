@@ -8,6 +8,8 @@ import { Button } from "@/components/ui/button";
 import { MapPin, Phone, Mail } from "lucide-react";
 import "@/static/contatos/style.css"
 
+const API_URL = import.meta.env.VITE_API_URL;
+
 const Contato = () => {
 
   // Estado para armazenar os dados do formulário
@@ -35,7 +37,7 @@ const Contato = () => {
     const handleSubmit = async (e: FormEvent) => {
         e.preventDefault();
 
-        const FLASK_API_URL = 'http://localhost:5000/api/v1/enviar-email'; 
+        const FLASK_API_URL = `${API_URL}/enviar-email`;
 
         setLoading(true);
         setStatus('');

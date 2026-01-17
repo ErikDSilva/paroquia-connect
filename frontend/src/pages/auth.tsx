@@ -11,6 +11,9 @@ import "@/static/auth/style.css";
 
 const RECAPTCHA_SITE_KEY = "6LdY90osAAAAANCFZOABYhw12VGgc3Pu3k0QfDyA"; 
 
+const API_URL = import.meta.env.VITE_API_URL;
+
+
 const Auth = () => {
   const { login } = useAuth();
   const navigate = useNavigate();
@@ -44,7 +47,7 @@ const Auth = () => {
     }
 
     try {
-      const res = await fetch("http://localhost:5000/api/v1/auth/login", {
+      const res = await fetch(`${API_URL}/auth/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: 'include',
