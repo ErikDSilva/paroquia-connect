@@ -1,5 +1,7 @@
 import { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
 
+const API_URL = import.meta.env.VITE_API_URL;
+
 interface User {
   id: number;
   nome: string;
@@ -26,7 +28,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const checkAuth = async () => {
       try {
         // IMPORTANTE: credentials: 'include' envia o cookie da sessão para o Flask
-        const res = await fetch('http://localhost:5000/api/v1/auth/me', {
+        const res = await fetch(`${API_URL}/auth/me`, {
             credentials: 'include' 
         });
         const data = await res.json();
