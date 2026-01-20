@@ -50,7 +50,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const logout = async () => {
     try {
-        await fetch('http://localhost:5000/api/v1/auth/logout', { 
+        await fetch(`${API_URL}/auth/logout`, { 
             method: 'POST',
             credentials: 'include' // Envia cookie para o servidor saber quem deslogar
         });
