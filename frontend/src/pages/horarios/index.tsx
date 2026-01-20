@@ -29,19 +29,18 @@ interface DaySchedule {
   activities: Activity[];
 }
 
-  // Retorna um número de 0 (Domingo) a 6 (Sábado)
-  const getCurrentDayIndex = () => {
+// Retorna um número de 0 (Domingo) a 6 (Sábado)
+const getCurrentDayIndex = () => {
   const today = new Date();
-  return today.getDay(); 
+  return today.getDay();
 };
 
 const Horarios = () => {
   const [currentDay, setCurrentDay] = useState(getCurrentDayIndex());
   const [loading, setLoading] = useState(true);
-  
 
-  
   // Estrutura base dos dias para garantir a ordem correta (Domingo a Sábado)
+  // Definido como constante fora ou useMemo seria ideal, mas aqui funciona bem
   const initialSchedule: DaySchedule[] = [
     { day: "Domingo", activities: [] },
     { day: "Segunda-feira", activities: [] },
@@ -55,24 +54,25 @@ const Horarios = () => {
   const [schedule, setSchedule] = useState<DaySchedule[]>(initialSchedule);
 
   useEffect(() => {
+    // Definimos a função de busca aqui dentro para facilitar o acesso ao escopo
     const fetchHorarios = async () => {
       try {
+        // NOTA: Não setamos setLoading(true) aqui para evitar que a tela pisque a cada 3 segundos
+        
         const response = await fetch(`${API_URL}/horarios`);
         if (response.ok) {
           const data: HorarioApi[] = await response.json();
-          
-          // Clona a estrutura inicial para não mutar o estado diretamente
+
+          // Clona a estrutura inicial para limpar os dados antigos antes de preencher os novos
           const newSchedule = JSON.parse(JSON.stringify(initialSchedule));
 
           // Distribui os horários vindos do banco nos dias correspondentes
           data.forEach((item) => {
-            // Procura o índice do dia no array (ex: "Segunda-feira")
             const dayIndex = newSchedule.findIndex((d: DaySchedule) => d.day === item.dia);
-            
+
             if (dayIndex !== -1) {
               newSchedule[dayIndex].activities.push({
-                // Corta os segundos se vier HH:MM:SS
-                time: item.horario.substring(0, 5), 
+                time: item.horario.substring(0, 5), // Corta os segundos
                 name: item.titulo,
                 location: item.local
               });
@@ -89,12 +89,22 @@ const Horarios = () => {
       } catch (error) {
         console.error("Erro ao buscar horários:", error);
       } finally {
+        // Garante que o loading pare, seja sucesso ou erro, apenas na primeira carga visual
         setLoading(false);
       }
     };
 
+    // 1. Chamada imediata ao montar o componente
     fetchHorarios();
-  }, []);
+
+    // 2. Configura o intervalo para atualizar a cada 3 segundos
+    const intervalId = setInterval(fetchHorarios, 3000);
+
+    // 3. Limpa o intervalo se o usuário sair da página
+    return () => clearInterval(intervalId);
+
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Array vazio para rodar apenas na montagem/desmontagem do componente
 
   const nextDay = () => {
     setCurrentDay((prev) => (prev + 1) % schedule.length);
@@ -124,7 +134,7 @@ const Horarios = () => {
                 <ChevronLeft className="nav-button-icon" />
               </Button>
 
-              <h2 className="schedule-day-title">{currentScheduleData.day}</h2>
+              <h2 className="schedule-day-title">{currentScheduleData?.day || "Carregando..."}</h2>
 
               <Button onClick={nextDay} className="nav-button" disabled={loading}>
                 <ChevronRight className="nav-button-icon" />
@@ -134,9 +144,9 @@ const Horarios = () => {
             <div className="activity-list">
               {loading ? (
                 <div className="flex justify-center py-8">
-                    <Loader2 className="animate-spin h-8 w-8 text-blue-600" />
+                  <Loader2 className="animate-spin h-8 w-8 text-blue-600" />
                 </div>
-              ) : currentScheduleData.activities.length > 0 ? (
+              ) : currentScheduleData && currentScheduleData.activities.length > 0 ? (
                 currentScheduleData.activities.map((activity, index) => (
                   <div key={index} className="activity-item">
                     <div>
@@ -161,11 +171,10 @@ const Horarios = () => {
               <button
                 key={index}
                 onClick={() => setCurrentDay(index)}
-                className={`day-selector-button ${
-                  currentDay === index
+                className={`day-selector-button ${currentDay === index
                     ? "day-selector-button--active"
                     : "day-selector-button--inactive"
-                }`}
+                  }`}
               >
                 {day.day.substring(0, 3)}
               </button>

@@ -1,12 +1,11 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Header } from "@/components/Header";
 import { Card } from "../../components/ui/card.tsx";
 import { Input } from "../../components/ui/input.tsx";
-import { Search, Bell } from "lucide-react";
+import { Search, Bell, RefreshCw } from "lucide-react"; // Importei ícone de refresh opcional
 
 import "@/static/avisos/style.css";
 
-// Interface compatível com o retorno da sua API Python
 interface Aviso {
   id: number;
   titulo: string;
@@ -18,46 +17,51 @@ interface Aviso {
 
 const API_URL = import.meta.env.VITE_API_URL;
 
-
 const Avisos = () => {
-  // Estado para armazenar os avisos vindos do banco
   const [avisos, setAvisos] = useState<Aviso[]>([]);
-  // Estado para o campo de busca
   const [searchTerm, setSearchTerm] = useState("");
-  // Estado de carregamento (opcional, mas bom para UX)
-  const [loading, setLoading] = useState(true);
+  // Estado para controlar apenas o carregamento inicial
+  const [isLoadingInitial, setIsLoadingInitial] = useState(true);
 
-  // Busca os dados do Backend ao carregar a página
-  useEffect(() => {
-    const fetchAvisos = async () => {
-      try {
-        const response = await fetch(`${API_URL}/avisos`);
-        if (response.ok) {
-          const data = await response.json();
-          setAvisos(data);
-        } else {
-          console.error("Erro ao buscar avisos");
-        }
-      } catch (error) {
-        console.error("Erro de conexão:", error);
-      } finally {
-        setLoading(false);
+  // Transformamos em useCallback para poder chamar manualmente ou via intervalo
+  const fetchAvisos = useCallback(async () => {
+    try {
+      const response = await fetch(`${API_URL}/avisos`);
+      if (response.ok) {
+        const data = await response.json();
+        setAvisos(data);
+      } else {
+        console.error("Erro ao buscar avisos");
       }
-    };
-
-    fetchAvisos();
+    } catch (error) {
+      console.error("Erro de conexão:", error);
+    } finally {
+      // Removemos o loading apenas após a primeira requisição completar
+      setIsLoadingInitial(false);
+    }
   }, []);
 
-  // Lógica de filtro para a barra de busca
+  useEffect(() => {
+    // 1. Chama imediatamente ao carregar
+    fetchAvisos();
+
+    // 2. Configura um intervalo para chamar a cada 10 segundos (10000ms)
+    // Ajuste o tempo conforme necessário para não sobrecarregar seu servidor
+    const intervalId = setInterval(() => {
+      fetchAvisos();
+    }, 10000); 
+
+    // 3. Limpa o intervalo quando o componente for desmontado (sair da página)
+    return () => clearInterval(intervalId);
+  }, [fetchAvisos]);
+
   const filteredAvisos = avisos.filter((aviso) =>
     aviso.titulo.toLowerCase().includes(searchTerm.toLowerCase()) ||
     aviso.descricao.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  // Função auxiliar para formatar a data (YYYY-MM-DD -> DD/MM/AAAA)
   const formatDate = (dateString: string) => {
     if (!dateString) return "";
-    // timeZone: 'UTC' garante que não subtraia um dia devido ao fuso horário
     return new Date(dateString).toLocaleDateString('pt-BR', { timeZone: 'UTC' });
   };
 
@@ -68,7 +72,17 @@ const Avisos = () => {
       <main className="main-content">
         <div className="avisos-container">
           <div className="header-section">
-            <h1 className="page-title">Mural de Avisos</h1>
+            <h1 className="page-title">
+              Mural de Avisos
+              {/* Botão opcional para recarregar manualmente */}
+              <button 
+                onClick={fetchAvisos} 
+                className="ml-4 p-2 text-gray-500 hover:text-blue-600 transition-colors"
+                title="Atualizar lista"
+              >
+                <RefreshCw size={20} />
+              </button>
+            </h1>
             <p className="page-description">
               Comunicados e notícias da paróquia
             </p>
@@ -84,13 +98,13 @@ const Avisos = () => {
             />
           </div>
 
-          {loading ? (
+          {/* Usamos isLoadingInitial para não esconder a lista durante as atualizações de fundo */}
+          {isLoadingInitial ? (
             <p className="text-center py-8 text-gray-500">Carregando avisos...</p>
           ) : (
             <div className="avisos-list">
               {filteredAvisos.map((aviso) => (
                 <Card key={aviso.id} className="aviso-card overflow-hidden">
-                  {/* Verifica se existe URL e se ela não é uma string vazia */}
                   {aviso.url && aviso.url.trim() !== "" && (
                     <div className="aviso-image-wrapper">
                       <img
@@ -98,7 +112,6 @@ const Avisos = () => {
                         alt={`Imagem ilustrativa para ${aviso.titulo}`}
                         className="aviso-image"
                         loading="lazy"
-                        // Adiciona um fallback caso a imagem esteja quebrada
                         onError={(e) => {
                           (e.target as HTMLImageElement).style.display = 'none';
                         }}
@@ -108,7 +121,6 @@ const Avisos = () => {
 
                   <div className="aviso-card-body">
                     <div className="aviso-card-content">
-                      {/* Se não tiver imagem, mostra o ícone de sino */}
                       {(!aviso.url || aviso.url.trim() === "") && (
                         <div className="aviso-icon-wrapper">
                           <Bell className="aviso-icon" />
@@ -122,18 +134,13 @@ const Avisos = () => {
                         </div>
 
                         <p className="aviso-body">{aviso.descricao}</p>
-                        
-                        {/* Opcional: Mostrar categoria com badge simples se quiser */}
-                        {/* <span className="text-xs font-semibold text-blue-600 mt-2 block">
-                           #{aviso.categoria}
-                        </span> */}
                       </div>
                     </div>
                   </div>
                 </Card>
               ))}
 
-              {!loading && filteredAvisos.length === 0 && (
+              {filteredAvisos.length === 0 && (
                 <p className="text-center py-8 text-gray-500">Nenhum aviso encontrado.</p>
               )}
             </div>

@@ -8,14 +8,12 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Search, Calendar, MapPin, Users } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { Toaster } from "@/components/ui/toaster";
-import { useState, useEffect, useRef } from "react"; // Adicionado useRef
-import ReCAPTCHA from "react-google-recaptcha" // Adicionado Import do ReCAPTCHA
+import { useState, useEffect, useRef } from "react";
+import ReCAPTCHA from "react-google-recaptcha";
 
 import '@/static/eventos/style.css';
 
 const API_URL = import.meta.env.VITE_API_URL;
-
-// Coloque sua Site Key aqui (a pública)
 
 declare module 'react-google-recaptcha';
 const RECAPTCHA_SITE_KEY = "6LdY90osAAAAANCFZOABYhw12VGgc3Pu3k0QfDyA";
@@ -35,7 +33,6 @@ type EventoUI = {
 const Eventos = () => {
   const [filter, setFilter] = useState("TODOS");
   const [events, setEvents] = useState<EventoUI[]>([]);
-
   const { toast } = useToast();
 
   // --- NOVOS ESTADOS PARA A INSCRIÇÃO ---
@@ -45,7 +42,6 @@ const Eventos = () => {
   // --- ESTADOS DO RECAPTCHA ---
   const [captchaToken, setCaptchaToken] = useState<string | null>(null);
   const captchaRef = useRef<ReCAPTCHA>(null);
-
 
   // estado para termos de busca
   const [searchTerm, setSearchTerm] = useState("");
@@ -87,6 +83,8 @@ const Eventos = () => {
           registred: evt.registered_count
         }));
 
+        // O React só vai re-renderizar se houver mudança real detectada pelo Diffing,
+        // mas setEvents será chamado. Se quiser ultra-performance, poderia comparar JSONs antes.
         setEvents(mappedEvents);
       }
     } catch (error) {
@@ -94,10 +92,22 @@ const Eventos = () => {
     }
   };
 
-  // Busca os dados do Backend
+  // -----------------------------------------------------------------------
+  // ALTERAÇÃO AQUI: Implementação do Polling (Atualização automática)
+  // -----------------------------------------------------------------------
   useEffect(() => {
+    // 1. Busca inicial
     fetchEventos();
-  }, []);
+
+    // 2. Configura o intervalo para buscar a cada 3 segundos (3000ms)
+    // Isso garante que se apagar ou criar no banco, atualiza aqui rapidinho.
+    const intervalId = setInterval(() => {
+      fetchEventos();
+    }, 3000);
+
+    // 3. Limpeza: Se o usuário sair da página, para de buscar
+    return () => clearInterval(intervalId);
+  }, []); 
 
   const filteredEventos = events.filter(e => {
     const matchesCategory = filter === "TODOS" || e.category === filter;
@@ -119,8 +129,7 @@ const Eventos = () => {
   const handleOpenSubscribe = (evento: EventoUI) => {
     setSelectedEvent(evento);
     setSubForm({ nome: "", telefone: "" });
-    setCaptchaToken(null); // Reseta o token ao abrir
-    // Pequeno delay para garantir que o modal renderizou antes de resetar o componente visual
+    setCaptchaToken(null);
     setTimeout(() => {
       captchaRef.current?.reset();
     }, 100);
@@ -131,7 +140,6 @@ const Eventos = () => {
     setCaptchaToken(null);
   };
 
-  // Função chamada quando o usuário clica no "Não sou um robô"
   const onCaptchaChange = (token: string | null) => {
     setCaptchaToken(token);
   };
@@ -141,10 +149,9 @@ const Eventos = () => {
 
     if (!selectedEvent) return;
 
-    // Validação do Captcha
     if (!captchaToken) {
       toast({
-        variant: "destructive", // Vermelho para erro
+        variant: "destructive",
         title: "Validação necessária",
         description: "Por favor, confirme que você não é um robô.",
       });
@@ -170,18 +177,16 @@ const Eventos = () => {
       const data = await response.json();
 
       if (response.ok) {
-        // SUCESSO
         toast({
           title: "Inscrição Confirmada! 🎉",
           description: `Você foi inscrito no evento: ${selectedEvent.title}`,
-          // Se tiver um estilo 'success' configurado no seu tema, use-o, senão o padrão serve
           variant: "default",
         });
 
         handleCloseSubscribe();
+        // Força uma busca imediata após a inscrição para atualizar as vagas
         await fetchEventos();
       } else {
-        // ERRO DO BACKEND
         toast({
           variant: "destructive",
           title: "Falha na inscrição",
@@ -193,7 +198,6 @@ const Eventos = () => {
       }
     } catch (error) {
       console.error("Erro de conexão ao inscrever:", error);
-      // ERRO DE REDE
       toast({
         variant: "destructive",
         title: "Erro de conexão",
@@ -319,7 +323,6 @@ const Eventos = () => {
               />
             </div>
 
-            {/* --- ADIÇÃO DO RECAPTCHA --- */}
             <div className="flex justify-center my-2">
               <ReCAPTCHA
                 ref={captchaRef}
