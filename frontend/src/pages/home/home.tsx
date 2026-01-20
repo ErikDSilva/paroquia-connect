@@ -1,8 +1,8 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Link } from "react-router-dom";
 import { Card } from "@/components/ui/card";
 import { Header } from "@/components/Header";
-import { Calendar, Bell, Clock } from "lucide-react";
+import { Calendar, Bell, Clock, RefreshCw } from "lucide-react"; // Adicionei RefreshCw opcional
 
 import "@/static/home/style.css";
 
@@ -27,55 +27,61 @@ interface Aviso {
 function App() {
   const [eventos, setEventos] = useState<Evento[]>([]);
   const [avisos, setAvisos] = useState<Aviso[]>([]);
-  const [loading, setLoading] = useState(true);
+  // Controla apenas o loading da primeira carga para não piscar a tela depois
+  const [isLoadingInitial, setIsLoadingInitial] = useState(true);
 
+  // 1. Movemos a lógica para um useCallback para ser reutilizável
+  const fetchData = useCallback(async () => {
+    try {
+      // Faz as duas requisições simultaneamente
+      const [resEventos, resAvisos] = await Promise.all([
+        fetch(`${API_URL}/eventos`),
+        fetch(`${API_URL}/avisos`)
+      ]);
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        // Faz as duas requisições simultaneamente
-        const [resEventos, resAvisos] = await Promise.all([
-          fetch(`${API_URL}/eventos`),
-          fetch(`${API_URL}/avisos`)
-        ]);
+      if (resEventos.ok && resAvisos.ok) {
+        const dadosEventos = await resEventos.json();
+        const dadosAvisos = await resAvisos.json();
 
-        if (resEventos.ok && resAvisos.ok) {
-          const dadosEventos = await resEventos.json();
-          const dadosAvisos = await resAvisos.json();
+        // LÓGICA DE EVENTOS:
+        const hoje = new Date();
+        hoje.setHours(0, 0, 0, 0);
 
-          // LÓGICA DE EVENTOS:
-          // 1. Filtra para pegar apenas eventos de hoje em diante
-          // 2. Ordena pela data mais próxima
-          // 3. Pega apenas os 3 primeiros
-          const hoje = new Date();
-          hoje.setHours(0, 0, 0, 0);
+        const proximosEventos = dadosEventos
+          .filter((e: Evento) => new Date(e.data) >= hoje)
+          .sort((a: Evento, b: Evento) => new Date(a.data).getTime() - new Date(b.data).getTime())
+          .slice(0, 3);
 
-          const proximosEventos = dadosEventos
-            .filter((e: Evento) => new Date(e.data) >= hoje) // Filtra passados
-            .sort((a: Evento, b: Evento) => new Date(a.data).getTime() - new Date(b.data).getTime()) // Ordena Ascendente
-            .slice(0, 3); // Pega os 3 primeiros
+        setEventos(proximosEventos);
 
-          setEventos(proximosEventos);
-
-          // LÓGICA DE AVISOS:
-          // O backend já manda ordenado por data decrescente (mais novo primeiro)
-          // Então só precisamos pegar os 3 primeiros
-          setAvisos(dadosAvisos.slice(0, 3));
-        }
-      } catch (error) {
-        console.error("Erro ao carregar dados da home:", error);
-      } finally {
-        setLoading(false);
+        // LÓGICA DE AVISOS:
+        setAvisos(dadosAvisos.slice(0, 3));
       }
-    };
+    } catch (error) {
+      console.error("Erro ao carregar dados da home:", error);
+    } finally {
+      // Garante que o loading inicial suma após a primeira tentativa
+      setIsLoadingInitial(false);
+    }
+  }, []); // Dependências vazias pois API_URL é constante
 
+  // 2. Configura o intervalo de atualização
+  useEffect(() => {
+    // Busca imediata
     fetchData();
-  }, []);
+
+    // Busca a cada 30 segundos
+    const intervalId = setInterval(() => {
+      fetchData();
+    }, 3000);
+
+    // Limpeza ao sair da página
+    return () => clearInterval(intervalId);
+  }, [fetchData]);
 
   // Função para formatar data (Ex: Sábado, 15/11)
   const formatarDataEvento = (dataString: string) => {
     const date = new Date(dataString);
-    // Ajuste de fuso horário simples para visualização correta
     const userTimezoneOffset = date.getTimezoneOffset() * 60000;
     const offsetDate = new Date(date.getTime() + userTimezoneOffset);
     
@@ -141,17 +147,21 @@ function App() {
             </Card>
           </Link>
         </div>
-
-        
-
       
         <div className="content-grid">
           {/* Próximos Eventos Dinâmicos */}
           <div>
-            <h2 className="section-title">Próximos Eventos</h2>
+            <div className="flex justify-between items-center mb-4">
+               <h2 className="section-title mb-0">Próximos Eventos</h2>
+               {/* Botão discreto para atualizar manualmente se precisar */}
+               <button onClick={fetchData} title="Atualizar agora" className="text-gray-400 hover:text-blue-600 transition">
+                  <RefreshCw size={16} />
+               </button>
+            </div>
+            
             <Card className="events-card">
               <div className="event-list">
-                {loading ? (
+                {isLoadingInitial ? (
                   <p className="p-4 text-gray-500">Carregando eventos...</p>
                 ) : eventos.length > 0 ? (
                   eventos.map((evento) => (
@@ -174,7 +184,7 @@ function App() {
           <div>
             <h2 className="section-title">Últimos Avisos</h2>
             <div className="notice-list">
-              {loading ? (
+              {isLoadingInitial ? (
                  <p className="text-gray-500">Carregando avisos...</p>
               ) : avisos.length > 0 ? (
                 avisos.map((aviso) => (

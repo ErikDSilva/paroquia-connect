@@ -418,7 +418,6 @@ const AdminMembros = () => {
                                             <TableHead>Nome</TableHead>
                                             <TableHead>E-mail</TableHead>
                                             <TableHead>Telefone</TableHead>
-                                            <TableHead>Data Cadastro</TableHead>
                                             <TableHead className="text-right">Ações</TableHead>
                                         </TableRow>
                                     </TableHeader>
@@ -429,7 +428,6 @@ const AdminMembros = () => {
                                                     <TableCell className="font-medium">{admin.name}</TableCell>
                                                     <TableCell>{admin.email}</TableCell>
                                                     <TableCell>{admin.phone}</TableCell>
-                                                    <TableCell>{admin.joined}</TableCell>
                                                     {isAdmin && (
                                                         <TableCell className="text-right">
                                                             <div className="flex justify-end gap-2">
