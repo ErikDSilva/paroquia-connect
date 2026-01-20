@@ -10,7 +10,7 @@ class Config:
     
     # Lista de origens permitidas para o CORS
     CORS_ORIGINS = [
-        os.environ.get('REACT_APP_URL') or 'http://localhost:5173'
+        os.environ.get('REACT_APP_URL') or 'http://3.144.84.225'
     ]
 
     MAIL_SERVER = os.environ.get('MAIL_SERVER', 'smtp.gmail.com')
